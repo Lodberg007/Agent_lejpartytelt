@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.7.7
+ * Version:     1.7.8
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.7.7' );
+define( 'LPT_VERSION', '1.7.8' );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -105,8 +105,8 @@ class LPT_Prisberegner {
     }
 
     public function output_color_vars() {
-        $primary      = $this->get_color( 'lpt_color_primary',     '#2563eb' );
-        $primary_dark = $this->get_color( 'lpt_color_primary_dark', '#1d4ed8' );
+        $primary      = $this->get_color( 'lpt_color_primary',     '#ed254e' );
+        $primary_dark = $this->get_color( 'lpt_color_primary_dark', '#c01b3e' );
         $header_dark  = $this->get_color( 'lpt_color_header_dark',  '#1e3a5f' );
         $header_vis   = $this->get_color( 'lpt_color_header_vis',   '#374151' );
         echo "<style>:root{" .
@@ -1076,8 +1076,8 @@ class LPT_Prisberegner {
                 <table class="form-table" style="max-width:700px">
                     <?php
                     $colors = [
-                        'lpt_color_primary'      => [ 'Primærfarve (knapper, rammer, header)',   '#2563eb' ],
-                        'lpt_color_primary_dark'  => [ 'Primærfarve mørk (hover-effekt)',          '#1d4ed8' ],
+                        'lpt_color_primary'      => [ 'Primærfarve (knapper, rammer, header)',   '#ed254e' ],
+                        'lpt_color_primary_dark'  => [ 'Primærfarve mørk (hover-effekt)',          '#c01b3e' ],
                         'lpt_color_header_dark'   => [ 'Tilbudspanel header-baggrund',             '#1e3a5f' ],
                         'lpt_color_header_vis'    => [ 'Produktpanel header-baggrund',             '#374151' ],
                     ];

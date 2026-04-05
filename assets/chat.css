@@ -29,7 +29,7 @@
     display: block;
     width: 36px;
     height: 6px;
-    background: var(--lpt-primary, #2563eb);
+    background: var(--lpt-primary, #ed254e);
     border-radius: 3px 0 0 3px;
     opacity: 0.7;
 }
@@ -40,7 +40,7 @@
     height: 0;
     border-top: 14px solid transparent;
     border-bottom: 14px solid transparent;
-    border-left: 18px solid var(--lpt-primary, #2563eb);
+    border-left: 18px solid var(--lpt-primary, #ed254e);
     opacity: 0.7;
     margin-top: -16px;
     margin-left: 36px;
@@ -48,7 +48,7 @@
 
 /* ── CHAT HEADER ── */
 .lpt-chat-header {
-    background: var(--lpt-primary, #2563eb);
+    background: var(--lpt-primary, #ed254e);
     color: #fff;
     font-weight: 700;
     font-size: 1rem;
@@ -121,7 +121,7 @@
     color: #1f2937;
 }
 .lpt-sum-name a { color: #1f2937; text-decoration: none; }
-.lpt-sum-name a:hover { text-decoration: underline; color: var(--lpt-primary, #2563eb); }
+.lpt-sum-name a:hover { text-decoration: underline; color: var(--lpt-primary, #ed254e); }
 .lpt-sum-name em { color: #6b7280; font-style: normal; font-size: 0.82rem; }
 .lpt-sum-img {
     width: 36px; height: 36px;
@@ -142,10 +142,10 @@
     align-items: center;
     padding: 12px 16px;
     background: var(--lpt-primary-light, #eff6ff);
-    border-top: 2px solid var(--lpt-primary, #2563eb);
+    border-top: 2px solid var(--lpt-primary, #ed254e);
     font-size: 1rem;
 }
-.lpt-sum-grand strong { font-size: 1.25rem; color: var(--lpt-primary-dark, #1d4ed8); }
+.lpt-sum-grand strong { font-size: 1.25rem; color: var(--lpt-primary-dark, #c01b3e); }
 
 .lpt-sum-note { font-size: 0.8rem; color: #6b7280; padding: 6px 16px 0; margin: 0; }
 
@@ -153,7 +153,7 @@
 .lpt-sum-cart-btn {
     width: 100%;
     padding: 12px;
-    background: var(--lpt-primary, #2563eb);
+    background: var(--lpt-primary, #ed254e);
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -162,7 +162,7 @@
     cursor: pointer;
     transition: background 0.15s;
 }
-.lpt-sum-cart-btn:hover    { background: var(--lpt-primary-dark, #1d4ed8); }
+.lpt-sum-cart-btn:hover    { background: var(--lpt-primary-dark, #c01b3e); }
 .lpt-sum-cart-btn:disabled { background: #93c5fd; cursor: not-allowed; }
 
 .lpt-sum-msg { margin-top: 8px; font-size: 0.88rem; padding: 8px 10px; border-radius: 6px; }
@@ -208,7 +208,7 @@
     line-height: 1.55;
     word-break: break-word;
 }
-.lpt-msg-user  .lpt-msg-bubble { background: var(--lpt-primary, #2563eb); color: #fff; border-bottom-right-radius: 4px; }
+.lpt-msg-user  .lpt-msg-bubble { background: var(--lpt-primary, #ed254e); color: #fff; border-bottom-right-radius: 4px; }
 .lpt-msg-agent .lpt-msg-bubble { background: #fff; color: #1f2937; border: 1px solid #e5e7eb; border-bottom-left-radius: 4px; }
 
 /* ── TYPING DOTS ── */
@@ -234,7 +234,7 @@
 /* ── TILBUDS-KORT ── */
 .lpt-offer-card {
     background: #fff;
-    border: 2px solid var(--lpt-primary, #2563eb);
+    border: 2px solid var(--lpt-primary, #ed254e);
     border-radius: 12px;
     padding: 18px 20px;
     width: 100%;
@@ -247,7 +247,7 @@
     margin-bottom: 14px;
 }
 .lpt-offer-title { font-weight: 700; font-size: 1rem; color: #1f2937; }
-.lpt-offer-mult  { font-size: 0.85rem; background: var(--lpt-primary-light, #eff6ff); color: var(--lpt-primary-dark, #1d4ed8); padding: 2px 8px; border-radius: 20px; }
+.lpt-offer-mult  { font-size: 0.85rem; background: var(--lpt-primary-light, #eff6ff); color: var(--lpt-primary-dark, #c01b3e); padding: 2px 8px; border-radius: 20px; }
 
 .lpt-offer-dates {
     font-size: 0.82rem;
@@ -297,7 +297,7 @@
     margin-bottom: 10px;
     font-size: 1rem;
 }
-.lpt-offer-total strong { font-size: 1.3rem; color: var(--lpt-primary-dark, #1d4ed8); }
+.lpt-offer-total strong { font-size: 1.3rem; color: var(--lpt-primary-dark, #c01b3e); }
 
 .lpt-offer-note {
     font-size: 0.82rem;
@@ -308,7 +308,7 @@
 .lpt-offer-btn {
     width: 100%;
     padding: 13px;
-    background: var(--lpt-primary, #2563eb);
+    background: var(--lpt-primary, #ed254e);
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -317,7 +317,7 @@
     cursor: pointer;
     transition: background 0.15s;
 }
-.lpt-offer-btn:hover    { background: var(--lpt-primary-dark, #1d4ed8); }
+.lpt-offer-btn:hover    { background: var(--lpt-primary-dark, #c01b3e); }
 .lpt-offer-btn:disabled { background: #93c5fd; cursor: not-allowed; }
 
 .lpt-offer-msg { margin-top: 10px; font-size: 0.9rem; border-radius: 6px; padding: 8px 12px; }
@@ -345,11 +345,11 @@
     line-height: 1.4;
     transition: border-color 0.15s;
 }
-.lpt-chat-input:focus { border-color: var(--lpt-primary, #2563eb); outline: none; }
+.lpt-chat-input:focus { border-color: var(--lpt-primary, #ed254e); outline: none; }
 
 .lpt-chat-send {
     padding: 10px 20px;
-    background: var(--lpt-primary, #2563eb);
+    background: var(--lpt-primary, #ed254e);
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -359,7 +359,7 @@
     transition: background 0.15s;
     align-self: flex-end;
 }
-.lpt-chat-send:hover    { background: var(--lpt-primary-dark, #1d4ed8); }
+.lpt-chat-send:hover    { background: var(--lpt-primary-dark, #c01b3e); }
 .lpt-chat-send:disabled { background: #93c5fd; cursor: not-allowed; }
 
 /* ── VISUELT PRODUKTPANEL ── */
@@ -404,7 +404,7 @@
     padding: 10px;
 }
 .lpt-visual-name  { font-size: 0.82rem; font-weight: 600; color: #1f2937; margin-bottom: 2px; }
-.lpt-visual-name a { color: var(--lpt-primary, #2563eb); text-decoration: none; }
+.lpt-visual-name a { color: var(--lpt-primary, #ed254e); text-decoration: none; }
 .lpt-visual-name a:hover { text-decoration: underline; }
 .lpt-visual-card > a { display: block; }
 .lpt-visual-price { font-size: 0.78rem; color: #6b7280; }
@@ -443,7 +443,7 @@
     margin-bottom: 4px;
 }
 .lpt-slide-name a {
-    color: var(--lpt-primary, #2563eb);
+    color: var(--lpt-primary, #ed254e);
     text-decoration: none;
 }
 .lpt-slide-name a:hover { text-decoration: underline; }
@@ -467,7 +467,7 @@
     transition: background 0.2s;
     display: inline-block;
 }
-.lpt-slide-dot.active { background: var(--lpt-primary, #2563eb); }
+.lpt-slide-dot.active { background: var(--lpt-primary, #ed254e); }
 
 /* ── UTILITIES ── */
 .lpt-hidden { display: none !important; }
