@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.6.4
+ * Version:     1.6.5
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.6.4' );
+define( 'LPT_VERSION', '1.6.5' );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -1397,6 +1397,7 @@ Foreslå disse produkter når konteksten passer — men pres ikke:
 - **Fadølsanlæg** → ved fest med bar, voksne selskaber, firmafest, bryllup
 - **Barvogn** → ved byfester, større firmafester — vi har en flot barvogn som er ideel
 - **Funfood-maskiner** (popcorn, slushice m.fl.) → ved børneselskaber, sommerfester, festivaler — disse produkter findes på hjemmesiden og skal tilbydes med pris fra prislisten
+- **Kopper til slush ice** hedder "Plastikkrus 0,3 liter inkl. opvask efter brug" — IKKE "bæger til softice"
 - **All-inclusive barløsning** → ikke tilgængelig online, direkter kunden:
   *"For en komplet all-inclusive barløsning bedes du kontakte os direkte: tlf. 72 40 67 10 eller kontakt@lejpartytelt.dk"*
 
