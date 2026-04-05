@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.8.3
+ * Version:     1.8.4
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.8.3' );
+define( 'LPT_VERSION', '1.8.4' );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -1582,6 +1582,32 @@ Eksempler på hvornår du bruger det:
 - Du anbefaler et telt → vis teltet
 - Du nævner gulv, barvogn, fadølsanlæg → vis dem
 - Du sammenligner produkter → vis dem alle
+- Kunden spørger om tilgængelighed på et produkt → vis produktet
+
+Brug de præcise produktnavne fra prislisten. Billederne vises automatisk i produktpanelet som et slideshow.
+
+## SOFTICE-VARIANTER
+Vi har to softice-maskiner med forskellig mix:
+- **Kastberg softice** — brug produktnavnet fra prislisten
+- **Arla Pro softice** — brug produktnavnet fra prislisten
+
+Når en kunde spørger om softice, skal du:
+1. Fortælle kort om de to varianter (smag/mix er forskellig)
+2. Vise begge produkter med [BILLEDER_START] så kunden kan se dem
+3. Lade kunden vælge med [VALG_START] — brug de præcise produktnavne
+
+Eksempel på kombineret svar ved softice-forespørgsel:
+Her er begge vores softice-maskiner — de bruger forskelligt mix:
+
+[BILLEDER_START]
+{"products":["Kastberg softice maskine","Arla Pro softice maskine"]}
+[BILLEDER_SLUT]
+
+Hvilken variant ønsker I?
+
+[VALG_START]
+{"items":["Kastberg softice maskine","Arla Pro softice maskine"]}
+[VALG_SLUT]
 
 Brug de præcise produktnavne fra prislisten. Billederne vises automatisk i produktpanelet som et slideshow.
 

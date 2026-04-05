@@ -87,58 +87,54 @@
     }
 
     /* ── RENDER AGENT SVAR ── */
+    // Parser råtekst og renderer alle tags i rækkefølge (billeder + valg kan optræde i samme svar)
     function renderAgentMessage(raw) {
-        // Håndter tilbud
+        // Tilbud håndteres separat (kan ikke blandes med andre tags)
         const offerStart = raw.indexOf(OFFER_START);
         const offerEnd   = raw.indexOf(OFFER_END);
         if (offerStart !== -1 && offerEnd !== -1) {
             const textBefore = raw.substring(0, offerStart).trim();
             const jsonStr    = raw.substring(offerStart + OFFER_START.length, offerEnd).trim();
             const textAfter  = raw.substring(offerEnd + OFFER_END.length).trim();
-            if (textBefore) appendMessage('agent', textBefore);
-            try {
-                const offer = JSON.parse(jsonStr);
-                appendOffer(offer);
-            } catch (e) {
-                appendMessage('agent', raw.replace(OFFER_START, '').replace(OFFER_END, '').trim());
-            }
-            if (textAfter) appendMessage('agent', textAfter);
+            if (textBefore) renderSegment(textBefore);
+            try { appendOffer(JSON.parse(jsonStr)); }
+            catch (e) { appendMessage('agent', raw.replace(OFFER_START,'').replace(OFFER_END,'').trim()); }
+            if (textAfter) renderSegment(textAfter);
+            return;
+        }
+        renderSegment(raw);
+    }
+
+    // Renderer et tekststykke som kan indeholde BILLEDER og/eller VALG tags (i vilkårlig rækkefølge)
+    function renderSegment(text) {
+        // Find alle tags og sorter dem efter position
+        const tags = [];
+        const addTag = function(start, end, type, tagStartLen, tagEndLen) {
+            if (start !== -1 && end !== -1) tags.push({ start, end: end + tagEndLen, type, jsonStart: start + tagStartLen, jsonEnd: end });
+        };
+        addTag(text.indexOf(IMG_START),  text.indexOf(IMG_END),  'img',  IMG_START.length,  IMG_END.length);
+        addTag(text.indexOf(VALG_START), text.indexOf(VALG_END), 'valg', VALG_START.length, VALG_END.length);
+        tags.sort(function(a,b){ return a.start - b.start; });
+
+        if (tags.length === 0) {
+            if (text.trim()) appendMessage('agent', text.trim());
             return;
         }
 
-        // Håndter produktbilleder
-        const imgStart = raw.indexOf(IMG_START);
-        const imgEnd   = raw.indexOf(IMG_END);
-        if (imgStart !== -1 && imgEnd !== -1) {
-            const textBefore = raw.substring(0, imgStart).trim();
-            const jsonStr    = raw.substring(imgStart + IMG_START.length, imgEnd).trim();
-            const textAfter  = raw.substring(imgEnd + IMG_END.length).trim();
-            if (textBefore) appendMessage('agent', textBefore);
-            try {
-                const data = JSON.parse(jsonStr);
-                showProductImages(data.products || []);
-            } catch (e) {}
-            if (textAfter) appendMessage('agent', textAfter);
-            return;
-        }
-
-        // Håndter valgmuligheder
-        const valgStart = raw.indexOf(VALG_START);
-        const valgEnd   = raw.indexOf(VALG_END);
-        if (valgStart !== -1 && valgEnd !== -1) {
-            const textBefore = raw.substring(0, valgStart).trim();
-            const jsonStr    = raw.substring(valgStart + VALG_START.length, valgEnd).trim();
-            const textAfter  = raw.substring(valgEnd + VALG_END.length).trim();
-            if (textBefore) appendMessage('agent', textBefore);
+        let cursor = 0;
+        tags.forEach(function(tag) {
+            const before = text.substring(cursor, tag.start).trim();
+            if (before) appendMessage('agent', before);
+            const jsonStr = text.substring(tag.jsonStart, tag.jsonEnd).trim();
             try {
                 const data = JSON.parse(jsonStr);
-                appendChoices(data.items || []);
-            } catch (e) {}
-            if (textAfter) appendMessage('agent', textAfter);
-            return;
-        }
-
-        appendMessage('agent', raw);
+                if (tag.type === 'img')  showProductImages(data.products || []);
+                if (tag.type === 'valg') appendChoices(data.items || []);
+            } catch(e) {}
+            cursor = tag.end;
+        });
+        const after = text.substring(cursor).trim();
+        if (after) appendMessage('agent', after);
     }
 
     /* ── VIS PRODUKTBILLEDER I VISUELT PANEL ── */
