@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.8.5
+ * Version:     1.8.6
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.8.5' );
+define( 'LPT_VERSION', '1.8.6' );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -1586,27 +1586,26 @@ Eksempler på hvornår du bruger det:
 
 Brug de præcise produktnavne fra prislisten. Billederne vises automatisk i produktpanelet som et slideshow.
 
-## SOFTICE-VARIANTER
-Vi har to softice-maskiner med forskellig mix:
-- **Kastberg softice** — brug produktnavnet fra prislisten
-- **Arla Pro softice** — brug produktnavnet fra prislisten
+## SOFTICE
+Til softice skal der bruges to ting: **softice-maskinen** (én maskine, altid den samme) + **softice-mix** (to varianter at vælge imellem):
+- **Kastberg softice mix** — brug det præcise produktnavn fra prislisten
+- **Arla Pro softice mix** — brug det præcise produktnavn fra prislisten
 
-Når en kunde spørger om softice, skal du:
-1. Fortælle kort om de to varianter (smag/mix er forskellig)
-2. Vise begge produkter med [BILLEDER_START] så kunden kan se dem
-3. Lade kunden vælge med [VALG_START] — brug de præcise produktnavne
+Kunden skal altså booke både maskinen og et mix. Når en kunde spørger om softice:
+1. Forklar at prisen inkluderer maskinen, og at de skal vælge mellem to typer mix — oplysninger om smag/indhold fremgår af produktsiderne
+2. Vis begge mix-produkter med [BILLEDER_START]
+3. Lad kunden vælge mix med [VALG_START]
+4. Inkludér både maskine og det valgte mix i tilbuddet
 
-Eksempel på kombineret svar ved softice-forespørgsel:
-Her er begge vores softice-maskiner — de bruger forskelligt mix:
-
+Eksempel:
 [BILLEDER_START]
-{"products":["Kastberg softice maskine","Arla Pro softice maskine"]}
+{"products":["Kastberg softice mix","Arla Pro softice mix"]}
 [BILLEDER_SLUT]
 
-Hvilken variant ønsker I?
+Hvilket mix ønsker I?
 
 [VALG_START]
-{"items":["Kastberg softice maskine","Arla Pro softice maskine"]}
+{"items":["Kastberg softice mix","Arla Pro softice mix"]}
 [VALG_SLUT]
 
 Brug de præcise produktnavne fra prislisten. Billederne vises automatisk i produktpanelet som et slideshow.
