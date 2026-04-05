@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.5.9
+ * Version:     1.6.0
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.5.9' );
+define( 'LPT_VERSION', '1.6.0' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -601,20 +601,32 @@ class LPT_Prisberegner {
         $cached = get_transient( 'lpt_rentman_equip_factors' );
         if ( $cached !== false ) return $cached;
 
-        // Korrekt felt bekræftet: factor_group
-        $raw = $this->rentman_get( 'equipment?limit=500&fields=id,name,factor_group' );
+        // Hent factor_group OG image fra Rentman
+        $raw = $this->rentman_get( 'equipment?limit=500&fields=id,name,factor_group,image' );
 
-        $map = []; // rentman_equipment_id → factor_group_id
+        $map = []; // rentman_equipment_id → { group_id, image_url }
         if ( is_array( $raw ) ) {
             foreach ( $raw as $item ) {
                 $eq_id     = (string) ( $item['id'] ?? '' );
                 $group_ref = $item['factor_group'] ?? null;
-                // Rentman returnerer enten et ID eller {id: X} objekt
                 $group_id  = is_array( $group_ref )
                     ? (string) ( $group_ref['id'] ?? '' )
                     : (string) ( $group_ref ?? '' );
-                if ( $eq_id && $group_id ) {
-                    $map[ $eq_id ] = $group_id;
+
+                // Rentman image-felt — kan være URL-streng eller {url:...} objekt
+                $img = $item['image'] ?? null;
+                $img_url = '';
+                if ( is_string( $img ) && $img ) {
+                    $img_url = $img;
+                } elseif ( is_array( $img ) ) {
+                    $img_url = $img['url'] ?? $img['src'] ?? $img['path'] ?? '';
+                }
+
+                if ( $eq_id ) {
+                    $map[ $eq_id ] = [
+                        'group_id'  => $group_id,
+                        'image_url' => $img_url,
+                    ];
                 }
             }
         }
@@ -673,7 +685,7 @@ class LPT_Prisberegner {
         foreach ( $product_map as $name => $data ) {
             $rentman_id = (string) ( $data['rentman_id'] ?? '' );
             if ( ! $rentman_id ) continue;
-            $group_id   = $equip_map[ $rentman_id ] ?? '';
+            $group_id   = $equip_map[ $rentman_id ]['group_id'] ?? '';
             $group_name = $factor_groups[ $group_id ]['name'] ?? 'Standard';
             $by_group[ $group_name ][] = $name;
         }
@@ -1383,7 +1395,7 @@ Stil gerne dato-spørgsmålet tidligt i samtalen — fx: "Hvornår skal I bruge 
 Foreslå disse produkter når konteksten passer — men pres ikke:
 - **Fadølsanlæg** → ved fest med bar, voksne selskaber, firmafest, bryllup
 - **Barvogn** → ved byfester, større firmafester — vi har en flot barvogn som er ideel
-- **Funfood-maskiner** (popcorn, slushice m.fl.) → ved børneselskaber, sommerfester, festivaler
+- **Funfood-maskiner** (popcorn, slushice m.fl.) → ved børneselskaber, sommerfester, festivaler — disse produkter findes på hjemmesiden og skal tilbydes med pris fra prislisten
 - **All-inclusive barløsning** → ikke tilgængelig online, direkter kunden:
   *"For en komplet all-inclusive barløsning bedes du kontakte os direkte: tlf. 72 40 67 10 eller kontakt@lejpartytelt.dk"*
 
@@ -1453,6 +1465,7 @@ PROMPT;
 
         $products    = wc_get_products( [ 'status' => 'publish', 'limit' => 500 ] );
         $rentman_key = $this->get_rentman_meta_key();
+        $equip_map   = $this->get_rentman_equipment_factor_map(); // indeholder image_url
         $map         = [];
 
         foreach ( $products as $product ) {
@@ -1463,16 +1476,21 @@ PROMPT;
                 ? (float) wc_get_price_including_tax( $product )
                 : (float) $product->get_price();
 
-            // Billede: featured image → galleribillede
-            $image_id = $product->get_image_id();
+            // Billede: WooCommerce featured image → galleri → Rentman API
+            $image_id  = $product->get_image_id();
             if ( ! $image_id ) {
                 $gallery = $product->get_gallery_image_ids();
                 if ( ! empty( $gallery ) ) $image_id = $gallery[0];
             }
             $image_url = $image_id ? wp_get_attachment_image_url( $image_id, 'medium' ) : '';
 
-            $permalink   = get_permalink( $id );
-            $rentman_id  = $rentman_key ? (string) get_post_meta( $id, $rentman_key, true ) : '';
+            $permalink  = get_permalink( $id );
+            $rentman_id = $rentman_key ? (string) get_post_meta( $id, $rentman_key, true ) : '';
+
+            // Fallback: hent billede fra Rentman hvis WooCommerce mangler det
+            if ( ! $image_url && $rentman_id && isset( $equip_map[ $rentman_id ] ) ) {
+                $image_url = $equip_map[ $rentman_id ]['image_url'] ?? '';
+            }
 
             if ( $permalink ) {
                 $map[ $product->get_name() ] = [
