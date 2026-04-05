@@ -1,0 +1,394 @@
+/* ─────────────────────────────────────────────
+   LPT Chat — chat.css
+───────────────────────────────────────────── */
+
+/* ── TO-KOLONNE LAYOUT ── */
+.lpt-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.lpt-chat-column    { flex: 1 1 38%; min-width: 0; }
+.lpt-summary-column { flex: 1 1 35%; min-width: 0; position: sticky; top: 20px; }
+.lpt-visual-column  { flex: 1 1 24%; min-width: 0; position: sticky; top: 20px; }
+
+/* ── CHAT HEADER ── */
+.lpt-chat-header {
+    background: #2563eb;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 12px 18px;
+    border-radius: 12px 12px 0 0;
+}
+
+/* ── LIVE SUMMARY PANEL ── */
+.lpt-live-summary {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.lpt-live-summary-header {
+    background: #1e3a5f;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 12px 18px;
+}
+.lpt-live-summary-empty {
+    padding: 28px 20px;
+    color: #9ca3af;
+    font-size: 0.93rem;
+    text-align: center;
+}
+
+.lpt-sum-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.85rem;
+    color: #374151;
+}
+.lpt-sum-meta span {
+    background: #e0e7ff;
+    color: #3730a3;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.lpt-sum-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+.lpt-sum-table thead th {
+    background: #f3f4f6;
+    padding: 7px 12px;
+    text-align: left;
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-weight: 600;
+    border-bottom: 1px solid #e5e7eb;
+}
+.lpt-sum-table thead th:last-child { text-align: right; }
+.lpt-sum-table tbody tr { border-bottom: 1px solid #f3f4f6; }
+.lpt-sum-table tbody tr:last-child { border-bottom: none; }
+.lpt-sum-table tbody td { padding: 8px 12px; vertical-align: middle; }
+.lpt-sum-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #1f2937;
+}
+.lpt-sum-name a { color: #1f2937; text-decoration: none; }
+.lpt-sum-name a:hover { text-decoration: underline; color: #2563eb; }
+.lpt-sum-name em { color: #6b7280; font-style: normal; font-size: 0.82rem; }
+.lpt-sum-img {
+    width: 36px; height: 36px;
+    object-fit: contain;
+    border-radius: 4px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+.lpt-sum-img-placeholder { width: 36px; height: 36px; flex-shrink: 0; }
+.lpt-sum-price { color: #6b7280; white-space: nowrap; }
+.lpt-sum-total { text-align: right; font-weight: 600; color: #1f2937; white-space: nowrap; }
+.lpt-sum-delivery td { color: #374151; font-style: italic; }
+
+.lpt-sum-grand {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #eff6ff;
+    border-top: 2px solid #2563eb;
+    font-size: 1rem;
+}
+.lpt-sum-grand strong { font-size: 1.25rem; color: #1d4ed8; }
+
+.lpt-sum-note { font-size: 0.8rem; color: #6b7280; padding: 6px 16px 0; margin: 0; }
+
+.lpt-sum-actions { padding: 14px 16px; }
+.lpt-sum-cart-btn {
+    width: 100%;
+    padding: 12px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.lpt-sum-cart-btn:hover    { background: #1d4ed8; }
+.lpt-sum-cart-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+
+.lpt-sum-msg { margin-top: 8px; font-size: 0.88rem; padding: 8px 10px; border-radius: 6px; }
+.lpt-sum-msg-ok  { background: #f0fdf4; color: #166534; }
+.lpt-sum-msg-err { background: #fef2f2; color: #991b1b; }
+.lpt-sum-msg a   { color: inherit; font-weight: 600; }
+
+.lpt-chat-wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+
+/* ── MESSAGES ── */
+.lpt-chat-messages {
+    height: 520px;
+    overflow-y: auto;
+    padding: 20px 16px;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scroll-behavior: smooth;
+}
+
+.lpt-msg {
+    display: flex;
+    max-width: 82%;
+}
+.lpt-msg-user  { align-self: flex-end; flex-direction: row-reverse; }
+.lpt-msg-agent { align-self: flex-start; }
+.lpt-msg-offer { max-width: 100%; width: 100%; }
+
+.lpt-msg-bubble {
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    word-break: break-word;
+}
+.lpt-msg-user  .lpt-msg-bubble { background: #2563eb; color: #fff; border-bottom-right-radius: 4px; }
+.lpt-msg-agent .lpt-msg-bubble { background: #fff; color: #1f2937; border: 1px solid #e5e7eb; border-bottom-left-radius: 4px; }
+
+/* ── TYPING DOTS ── */
+.lpt-typing .lpt-msg-bubble {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 12px 16px;
+}
+.lpt-typing .lpt-msg-bubble span {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #9ca3af;
+    animation: lpt-bounce 1.2s infinite;
+}
+.lpt-typing .lpt-msg-bubble span:nth-child(2) { animation-delay: .2s; }
+.lpt-typing .lpt-msg-bubble span:nth-child(3) { animation-delay: .4s; }
+@keyframes lpt-bounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40%           { transform: translateY(-6px); }
+}
+
+/* ── TILBUDS-KORT ── */
+.lpt-offer-card {
+    background: #fff;
+    border: 2px solid #2563eb;
+    border-radius: 12px;
+    padding: 18px 20px;
+    width: 100%;
+}
+
+.lpt-offer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+.lpt-offer-title { font-weight: 700; font-size: 1rem; color: #1f2937; }
+.lpt-offer-mult  { font-size: 0.85rem; background: #eff6ff; color: #1d4ed8; padding: 2px 8px; border-radius: 20px; }
+
+.lpt-offer-dates {
+    font-size: 0.82rem;
+    color: #374151;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    padding: 5px 10px;
+    margin-bottom: 12px;
+}
+.lpt-offer-dates-missing {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #92400e;
+}
+.lpt-offer-lines { margin-bottom: 12px; }
+.lpt-offer-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 0.9rem;
+}
+
+.lpt-offer-img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    border-radius: 6px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+.lpt-offer-line:last-child   { border-bottom: none; }
+.lpt-offer-delivery .lpt-offer-name { color: #374151; }
+.lpt-offer-name  { flex: 1; color: #374151; }
+.lpt-offer-price { font-weight: 600; color: #1f2937; white-space: nowrap; margin-left: 12px; }
+
+.lpt-offer-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #eff6ff;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    font-size: 1rem;
+}
+.lpt-offer-total strong { font-size: 1.3rem; color: #1d4ed8; }
+
+.lpt-offer-note {
+    font-size: 0.82rem;
+    color: #6b7280;
+    margin-bottom: 14px;
+}
+
+.lpt-offer-btn {
+    width: 100%;
+    padding: 13px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.lpt-offer-btn:hover    { background: #1d4ed8; }
+.lpt-offer-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+
+.lpt-offer-msg { margin-top: 10px; font-size: 0.9rem; border-radius: 6px; padding: 8px 12px; }
+.lpt-offer-msg-ok  { background: #f0fdf4; color: #166534; }
+.lpt-offer-msg-err { background: #fef2f2; color: #991b1b; }
+.lpt-offer-msg a   { color: inherit; font-weight: 600; }
+
+/* ── INPUT AREA ── */
+.lpt-chat-input-wrap {
+    display: flex;
+    gap: 8px;
+    padding: 12px 14px;
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+}
+
+.lpt-chat-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: none;
+    line-height: 1.4;
+    transition: border-color 0.15s;
+}
+.lpt-chat-input:focus { border-color: #2563eb; outline: none; }
+
+.lpt-chat-send {
+    padding: 10px 20px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    align-self: flex-end;
+}
+.lpt-chat-send:hover    { background: #1d4ed8; }
+.lpt-chat-send:disabled { background: #93c5fd; cursor: not-allowed; }
+
+/* ── VISUELT PRODUKTPANEL ── */
+.lpt-visual-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.lpt-visual-header {
+    background: #374151;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 12px 18px;
+}
+.lpt-visual-empty {
+    padding: 24px 16px;
+    color: #9ca3af;
+    font-size: 0.88rem;
+    text-align: center;
+}
+.lpt-visual-card {
+    padding: 12px;
+    border-bottom: 1px solid #f3f4f6;
+    text-align: center;
+}
+.lpt-visual-card:last-child { border-bottom: none; }
+.lpt-visual-card img {
+    width: 100%;
+    max-height: 120px;
+    object-fit: contain;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    background: #f9fafb;
+}
+.lpt-visual-card-text {
+    background: #f9fafb;
+    border-radius: 6px;
+    margin: 8px;
+    padding: 10px;
+}
+.lpt-visual-name  { font-size: 0.82rem; font-weight: 600; color: #1f2937; margin-bottom: 2px; }
+.lpt-visual-name a { color: #2563eb; text-decoration: none; }
+.lpt-visual-name a:hover { text-decoration: underline; }
+.lpt-visual-card > a { display: block; }
+.lpt-visual-price { font-size: 0.78rem; color: #6b7280; }
+
+/* ── UTILITIES ── */
+.lpt-hidden { display: none !important; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+    .lpt-layout { flex-direction: column; }
+    .lpt-summary-column,
+    .lpt-visual-column { position: static; }
+}
+@media (max-width: 560px) {
+    .lpt-chat-messages { height: 400px; }
+    .lpt-msg { max-width: 95%; }
+    .lpt-offer-total { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
