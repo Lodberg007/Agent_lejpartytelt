@@ -472,11 +472,13 @@
         const $name   = $body.find('.lpt-slide-name');
         const $price  = $body.find('.lpt-slide-price');
 
+        // Pak billede ud af evt. tidligere anchor og sæt nyt
+        if ($img.parent().is('a')) $img.unwrap();
+
         if (item.url) {
             $img.attr('src', item.url).attr('alt', item.name).removeClass('lpt-hidden');
             $noImg.addClass('lpt-hidden');
             if (item.link) {
-                $img.closest('.lpt-slide-img-wrap').find('a').remove();
                 $img.wrap(`<a href="${esc(item.link)}" target="_blank" rel="noopener"></a>`);
             }
         } else {
