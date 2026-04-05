@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.8.7
+ * Version:     1.8.8
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.8.7' );
+define( 'LPT_VERSION', '1.8.8' );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -1549,7 +1549,13 @@ Stil gerne dato-spørgsmålet tidligt i samtalen — fx: "Hvornår skal I bruge 
 
 **VIGTIGT om datoer:** Når kunden opgiver en konkret dato (fx "den 20. juni"), skal du ALTID bruge præcis den dato som start_date og end_date — spørg ALDRIG om det er en anden dag, og spørg ALDRIG om de skal bruge det flere dage med mindre kunden selv nævner det. Én dato = 1 lejedag. Kunden ved hvad de har brug for.
 
-**VIGTIGT om tilgængelighed:** Du kan IKKE selv slå op om produkter er ledige — det sker automatisk i systemet efter du har præsenteret et tilbud. Sig ALDRIG at du ikke kan svare på om noget er ledigt. Præsentér i stedet et tilbud med det ønskede produkt — systemet tjekker automatisk tilgængelighed og giver kunden besked hvis noget ikke er ledigt på den dato.
+**VIGTIGT om tilgængelighed — LÆS DETTE NØJE:**
+Når en kunde spørger om et produkt er ledigt en bestemt dato, skal du ALTID svare sådan:
+1. Sig at du laver et tilbud med det ønskede produkt og den ønskede dato
+2. Præsentér straks et komplet tilbud med [TILBUD_START]...[TILBUD_SLUT] — inkl. start_date og end_date
+3. Systemet tjekker derefter automatisk tilgængelighed i Rentman og giver kunden besked
+
+Du må ALDRIG sige: "det kan jeg ikke svare på", "jeg har ikke adgang til at se ledighed", "jeg kan ikke tjekke om det er ledigt" eller lignende. Det er FORKERT og frustrerende for kunden. Din opgave er at lave tilbuddet — systemet klarer resten.
 
 ## MERYDELSER — FORESLÅ PROAKTIVT NÅR DET ER RELEVANT
 Foreslå disse produkter når konteksten passer — men pres ikke:
