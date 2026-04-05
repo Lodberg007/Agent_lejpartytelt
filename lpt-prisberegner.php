@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.5.2
+ * Version:     1.5.3
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.5.2' );
+define( 'LPT_VERSION', '1.5.3' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -412,9 +412,10 @@ class LPT_Prisberegner {
             $name = $item['displayname'] ?? $item['name'] ?? $id;
             if ( ! $id ) continue;
 
-            // Hent detail for at få selve faktorrækker
-            $detail  = $this->rentman_get( 'factorgroups/' . $id );
-            $factors = $this->extract_factor_rows( $detail ?? $item );
+            // Bekræftet endpoint: factorgroups/{id}/factors
+            // Felter: from_days, to_days, factor
+            $rows    = $this->rentman_get( 'factorgroups/' . $id . '/factors' );
+            $factors = $this->extract_factor_rows( is_array( $rows ) ? $rows : [] );
 
             $groups[ $id ] = [ 'name' => $name, 'factors' => $factors ];
         }
@@ -423,26 +424,14 @@ class LPT_Prisberegner {
         return $groups;
     }
 
-    private function extract_factor_rows( array $data ): array {
-        // Prøv alle kendte nøgler for faktorrækker
-        $rows = $data['factors']
-             ?? $data['rentalperiodprices']
-             ?? $data['periods']
-             ?? $data['rows']
-             ?? $data['items']
-             ?? [];
-
-        // Hvis detail-responsen selv er en liste af rækker (array-of-arrays uden nøgle)
-        if ( empty( $rows ) && isset( $data[0] ) && is_array( $data[0] ) ) {
-            $rows = $data;
-        }
-
+    private function extract_factor_rows( array $rows ): array {
+        // Bekræftede feltnavne fra Rentman API: from_days, to_days, factor
         $factors = [];
         foreach ( $rows as $row ) {
             if ( ! is_array( $row ) ) continue;
-            $from   = (int)   ( $row['from']   ?? $row['from_day'] ?? $row['start'] ?? 1 );
-            $to     = (int)   ( $row['till']   ?? $row['to_day']   ?? $row['to']    ?? $row['end'] ?? $from );
-            $factor = (float) ( $row['factor'] ?? $row['multiplier'] ?? $row['price_factor'] ?? 0 );
+            $from   = (int)   ( $row['from_days'] ?? $row['from'] ?? 1 );
+            $to     = (int)   ( $row['to_days']   ?? $row['to']   ?? $from );
+            $factor = (float) ( $row['factor']     ?? 0 );
             if ( $factor > 0 ) {
                 $factors[] = [ 'from' => $from, 'to' => $to, 'factor' => $factor ];
             }
