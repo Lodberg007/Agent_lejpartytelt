@@ -532,17 +532,32 @@
         });
     }
 
+    function normalizeName(str) {
+        return str.toLowerCase()
+            .replace(/[,\.]/g, ' ')   // komma og punktum → mellemrum
+            .replace(/\s+/g, ' ')     // flere mellemrum → ét
+            .replace(/×/g, 'x')       // × → x
+            .trim();
+    }
+
     function findImage(productName) {
         const images = (lptChatConfig.productImages) || {};
+        // 1. Eksakt match
         if ( images[productName] ) return images[productName];
-        // Prøv case-insensitivt match
+        // 2. Case-insensitivt
         const lower = productName.toLowerCase();
         for ( const [name, data] of Object.entries(images) ) {
             if ( name.toLowerCase() === lower ) return data;
         }
-        // Prøv delvist match (AI bruger nogle gange lidt andre navne)
+        // 3. Normaliseret match (ignorer kommaer, punktum, mellemrum)
+        const norm = normalizeName(productName);
         for ( const [name, data] of Object.entries(images) ) {
-            if ( name.toLowerCase().includes(lower) || lower.includes(name.toLowerCase()) ) return data;
+            if ( normalizeName(name) === norm ) return data;
+        }
+        // 4. Delvist normaliseret match
+        for ( const [name, data] of Object.entries(images) ) {
+            const n = normalizeName(name);
+            if ( n.includes(norm) || norm.includes(n) ) return data;
         }
         return null;
     }
