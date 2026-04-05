@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.7.4
+ * Version:     1.7.5
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.7.4' );
+define( 'LPT_VERSION', '1.7.5' );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -572,36 +572,32 @@ class LPT_Prisberegner {
         if ( ! current_user_can( 'update_plugins' ) ) wp_die( 'Ikke tilladt' );
 
         $url = ( get_option( 'lpt_update_url' ) ?: LPT_UPDATE_URL );
-        if ( ! $url ) {
-            wp_send_json_error( [ 'message' => 'Ingen update-URL konfigureret.' ] );
-        }
 
-        // Byg version-check URL
-        // GitHub releases-URL → brug raw.githubusercontent.com/…/main/version.json
+        // Brug GitHub Releases API hvis URL er en GitHub releases-URL (altid opdateret)
+        $remote = null;
         if ( preg_match( '#github\.com/([^/]+/[^/]+)/releases/#', $url, $m ) ) {
-            $version_url = 'https://raw.githubusercontent.com/' . $m[1] . '/main/version.json';
-        } else {
-            $version_url = preg_replace( '/\.zip$/i', '-version.json', $url );
-            if ( $version_url === $url ) {
-                $version_url = rtrim( $url, '/' ) . '/version.json';
+            $api_url = 'https://api.github.com/repos/' . $m[1] . '/releases/latest';
+            $resp    = wp_remote_get( $api_url, [
+                'timeout' => 10,
+                'headers' => [ 'User-Agent' => 'LPT-Prisberegner/' . LPT_VERSION ],
+            ] );
+            if ( ! is_wp_error( $resp ) && wp_remote_retrieve_response_code( $resp ) === 200 ) {
+                $data   = json_decode( wp_remote_retrieve_body( $resp ), true );
+                $tag    = $data['tag_name'] ?? '';           // fx "v1.7.4"
+                $remote = ltrim( $tag, 'vV' );              // → "1.7.4"
             }
         }
 
-        $resp = wp_remote_get( $version_url, [ 'timeout' => 10 ] );
-        if ( is_wp_error( $resp ) || wp_remote_retrieve_response_code( $resp ) !== 200 ) {
-            // Kan ikke tjekke version — returner blot nuværende version
+        if ( ! $remote ) {
             wp_send_json_success( [
-                'current'   => LPT_VERSION,
-                'remote'    => null,
+                'current'    => LPT_VERSION,
+                'remote'     => null,
                 'has_update' => false,
-                'note'      => 'Kunne ikke tjekke remote version — klik Installer for at opdatere manuelt.',
+                'note'       => 'Kunne ikke tjekke remote version — klik Installer for at opdatere manuelt.',
             ] );
         }
 
-        $data    = json_decode( wp_remote_retrieve_body( $resp ), true );
-        $remote  = $data['version'] ?? null;
-        $has_upd = $remote && version_compare( $remote, LPT_VERSION, '>' );
-
+        $has_upd = version_compare( $remote, LPT_VERSION, '>' );
         wp_send_json_success( [
             'current'    => LPT_VERSION,
             'remote'     => $remote,
