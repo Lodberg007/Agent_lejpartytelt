@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.7.5
+ * Version:     1.7.6
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.7.5' );
+define( 'LPT_VERSION', '1.7.6' );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -1343,7 +1343,7 @@ class LPT_Prisberegner {
         return ob_get_clean();
     }
 
-    /* ── SHORTCODE: KOMPLET LAYOUT (chat + tilbud + produkter i ét) ── */
+    /* ── SHORTCODE: KOMPLET LAYOUT (chat + produkter + tilbud i ét) ── */
     public function shortcode_komplet( $atts ) {
         ob_start();
         ?>
@@ -1351,11 +1351,13 @@ class LPT_Prisberegner {
             <div class="lpt-chat-column">
                 <?php echo $this->shortcode_chat( $atts ); ?>
             </div>
-            <div class="lpt-summary-column">
-                <?php echo $this->shortcode_tilbud( $atts ); ?>
-            </div>
+            <div class="lpt-col-arrow" aria-hidden="true">→</div>
             <div class="lpt-visual-column">
                 <?php echo $this->shortcode_produkter( $atts ); ?>
+            </div>
+            <div class="lpt-col-arrow" aria-hidden="true">→</div>
+            <div class="lpt-summary-column">
+                <?php echo $this->shortcode_tilbud( $atts ); ?>
             </div>
         </div>
         <?php
