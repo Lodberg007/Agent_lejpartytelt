@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.8.6
+ * Version:     1.8.7
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.8.6' );
+define( 'LPT_VERSION', '1.8.7' );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -1558,6 +1558,7 @@ Foreslå disse produkter når konteksten passer — men pres ikke:
 - **Funfood-maskiner** (popcorn, slushice m.fl.) → ved børneselskaber, sommerfester, festivaler — disse produkter findes på hjemmesiden og skal tilbydes med pris fra prislisten
 - **Kopper til slush ice** hedder "Plastikkrus 0,3 liter inkl. opvask efter brug" — IKKE "bæger til softice"
 - **Opstilling af maskiner** → Softice-, slush ice- og popcornmaskiner samt fadølsanlæg opstilles af kunden selv ud fra medfølgende skriftlig vejledning eller mundtlig instruktion ved levering. Fotoboksen opstilles ALTID af Lejpartytelt.dk.
+- **Betjening af maskiner** → Spørg ALDRIG om hvem der skal betjene maskiner, fadølsanlæg eller andet udstyr — det er kundens eget ansvar og er irrelevant for tilbuddet. Undtagelse: hoppeborge skal have opsyn af en person på minimum 16 år — dette skal nævnes når kunden bestiller hoppeborg.
 - **Opvask på service** → Alle service-produkter (kopper, tallerkner, glas, bestik) inkluderer ALTID tvungen opvask fra Lejpartytelt.dk — det er inkluderet i prisen. Kunden skal blot returnere det i bakkerne som ved modtagelse. Tallerkner og bestik skal skylles af for madrester — resten klarer Lejpartytelt.
 - **Tvungen levering** → Softice-maskiner og køleskabe SKAL leveres og afhentes af Lejpartytelt.dk — kunden kan ikke selv transportere dem. Leveringspris tilføjes altid til tilbuddet for disse produkter.
 - **Telte og opstilling** → Lejpartytelt.dk er ALTID med ved opsætning og nedtagning af telte. Kunden kan dog vælge at medbringe egne hjælpere, hvilket kan spare 500–750 kr afhængigt af teltets størrelse. Spørg om kunden ønsker at spare ved at stille med hjælpere.
