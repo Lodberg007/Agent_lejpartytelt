@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.7.8
+ * Version:     1.8.1
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.7.8' );
+define( 'LPT_VERSION', '1.8.1' );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -1351,11 +1351,21 @@ class LPT_Prisberegner {
             <div class="lpt-chat-column">
                 <?php echo $this->shortcode_chat( $atts ); ?>
             </div>
-            <div class="lpt-col-arrow" aria-hidden="true"></div>
+            <div class="lpt-col-arrow" aria-hidden="true">
+                <svg viewBox="0 0 48 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <line x1="0" y1="14" x2="36" y2="14" stroke="var(--lpt-primary,#ed254e)" stroke-width="5" stroke-linecap="round"/>
+                    <polygon points="32,4 48,14 32,24" fill="var(--lpt-primary,#ed254e)"/>
+                </svg>
+            </div>
             <div class="lpt-visual-column">
                 <?php echo $this->shortcode_produkter( $atts ); ?>
             </div>
-            <div class="lpt-col-arrow" aria-hidden="true"></div>
+            <div class="lpt-col-arrow" aria-hidden="true">
+                <svg viewBox="0 0 48 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <line x1="0" y1="14" x2="36" y2="14" stroke="var(--lpt-primary,#ed254e)" stroke-width="5" stroke-linecap="round"/>
+                    <polygon points="32,4 48,14 32,24" fill="var(--lpt-primary,#ed254e)"/>
+                </svg>
+            </div>
             <div class="lpt-summary-column">
                 <?php echo $this->shortcode_tilbud( $atts ); ?>
             </div>
@@ -1525,12 +1535,15 @@ Du SKAL have disse oplysninger fra kunden inden du præsenterer et endeligt tilb
 
 Stil gerne dato-spørgsmålet tidligt i samtalen — fx: "Hvornår skal I bruge teltet? Angiv gerne den konkrete dato."
 
+**VIGTIGT om datoer:** Når kunden opgiver en konkret dato (fx "den 20. juni"), skal du ALTID bruge præcis den dato — spørg ALDRIG om det måske er en anden dag. Kunden ved hvilken dag de har brug for udstyret. Brug den opgivne dato direkte som start_date og end_date i tilbuddet.
+
 ## MERYDELSER — FORESLÅ PROAKTIVT NÅR DET ER RELEVANT
 Foreslå disse produkter når konteksten passer — men pres ikke:
 - **Fadølsanlæg** → ved fest med bar, voksne selskaber, firmafest, bryllup
 - **Barvogn** → ved byfester, større firmafester — vi har en flot barvogn som er ideel
 - **Funfood-maskiner** (popcorn, slushice m.fl.) → ved børneselskaber, sommerfester, festivaler — disse produkter findes på hjemmesiden og skal tilbydes med pris fra prislisten
 - **Kopper til slush ice** hedder "Plastikkrus 0,3 liter inkl. opvask efter brug" — IKKE "bæger til softice"
+- **Opstilling af maskiner** → Softice-, slush ice- og popcornmaskiner samt fadølsanlæg opstilles af kunden selv ud fra medfølgende skriftlig vejledning eller mundtlig instruktion ved levering. Fotoboksen opstilles ALTID af Lejpartytelt.dk.
 - **Opvask på service** → Alle service-produkter (kopper, tallerkner, glas, bestik) inkluderer ALTID tvungen opvask fra Lejpartytelt.dk — det er inkluderet i prisen. Kunden skal blot returnere det i bakkerne som ved modtagelse. Tallerkner og bestik skal skylles af for madrester — resten klarer Lejpartytelt.
 - **Tvungen levering** → Softice-maskiner og køleskabe SKAL leveres og afhentes af Lejpartytelt.dk — kunden kan ikke selv transportere dem. Leveringspris tilføjes altid til tilbuddet for disse produkter.
 - **Telte og opstilling** → Lejpartytelt.dk er ALTID med ved opsætning og nedtagning af telte. Kunden kan dog vælge at medbringe egne hjælpere, hvilket kan spare 500–750 kr afhængigt af teltets størrelse. Spørg om kunden ønsker at spare ved at stille med hjælpere.
