@@ -9,6 +9,8 @@
     const OFFER_END    = '[TILBUD_SLUT]';
     const IMG_START    = '[BILLEDER_START]';
     const IMG_END      = '[BILLEDER_SLUT]';
+    const VALG_START   = '[VALG_START]';
+    const VALG_END     = '[VALG_SLUT]';
 
     function dayMultiplier(days) {
         if (days <= 1) return 1.0;
@@ -115,6 +117,22 @@
             try {
                 const data = JSON.parse(jsonStr);
                 showProductImages(data.products || []);
+            } catch (e) {}
+            if (textAfter) appendMessage('agent', textAfter);
+            return;
+        }
+
+        // Håndter valgmuligheder
+        const valgStart = raw.indexOf(VALG_START);
+        const valgEnd   = raw.indexOf(VALG_END);
+        if (valgStart !== -1 && valgEnd !== -1) {
+            const textBefore = raw.substring(0, valgStart).trim();
+            const jsonStr    = raw.substring(valgStart + VALG_START.length, valgEnd).trim();
+            const textAfter  = raw.substring(valgEnd + VALG_END.length).trim();
+            if (textBefore) appendMessage('agent', textBefore);
+            try {
+                const data = JSON.parse(jsonStr);
+                appendChoices(data.items || []);
             } catch (e) {}
             if (textAfter) appendMessage('agent', textAfter);
             return;
@@ -306,6 +324,89 @@
         const $msg = $('<div class="lpt-msg ' + cls + '"><div class="lpt-msg-bubble"></div></div>');
         $msg.find('.lpt-msg-bubble').html(html);
         $('#lpt-chat-messages').append($msg);
+        scrollToBottom();
+    }
+
+    /* ── VALGMULIGHEDER MED FLUEBEN/KRYDS ── */
+    function appendChoices(items) {
+        if (!items.length) return;
+
+        const state = {}; // null = ikke valgt, true = ja, false = nej
+        items.forEach(function(item) { state[item] = null; });
+
+        const $card = $('<div class="lpt-choices-card"></div>');
+        const $list = $('<div class="lpt-choices-list"></div>');
+
+        items.forEach(function(item) {
+            const $row = $(`
+                <div class="lpt-choice-row" data-item="${esc(item)}">
+                    <span class="lpt-choice-label">${esc(item)}</span>
+                    <div class="lpt-choice-btns">
+                        <button type="button" class="lpt-choice-btn lpt-choice-yes" title="Ja tak">✅</button>
+                        <button type="button" class="lpt-choice-btn lpt-choice-no"  title="Nej tak">❌</button>
+                    </div>
+                </div>`);
+            $list.append($row);
+        });
+
+        const $confirm = $('<button type="button" class="lpt-choices-confirm" disabled>Send valg →</button>');
+        $card.append($list).append($confirm);
+
+        // Klik på ja/nej
+        $card.on('click', '.lpt-choice-btn', function() {
+            const $btn  = $(this);
+            const $row  = $btn.closest('.lpt-choice-row');
+            const item  = $row.data('item');
+            const isYes = $btn.hasClass('lpt-choice-yes');
+
+            // Toggle: klik igen for at fravælge
+            if (state[item] === (isYes ? true : false)) {
+                state[item] = null;
+                $row.find('.lpt-choice-btn').removeClass('selected');
+            } else {
+                state[item] = isYes;
+                $row.find('.lpt-choice-btn').removeClass('selected');
+                $btn.addClass('selected');
+            }
+
+            // Aktiver send-knap hvis mindst ét valg er truffet
+            const anyChosen = Object.values(state).some(v => v !== null);
+            $confirm.prop('disabled', !anyChosen);
+        });
+
+        // Send valg som besked
+        $confirm.on('click', function() {
+            const yes = [], no = [];
+            Object.entries(state).forEach(function([item, val]) {
+                if (val === true)  yes.push(item);
+                if (val === false) no.push(item);
+            });
+
+            let msg = '';
+            if (yes.length) msg += 'Ja tak til: ' + yes.join(', ') + '. ';
+            if (no.length)  msg += 'Nej tak til: ' + no.join(', ') + '.';
+
+            $card.addClass('lpt-choices-done');
+            $confirm.prop('disabled', true).text('Sendt ✓');
+
+            appendMessage('user', msg.trim());
+            showTyping();
+            $.post(lptChatConfig.ajaxUrl, {
+                action:  'lpt_chat_message',
+                nonce:   lptChatConfig.nonce,
+                message: msg.trim(),
+                history: JSON.stringify(history),
+            }).done(function(res) {
+                removeTyping();
+                if (res.success) {
+                    history = res.data.history || [];
+                    renderAgentMessage(res.data.message);
+                }
+            }).fail(function() { removeTyping(); });
+        });
+
+        const $wrap = $('<div class="lpt-msg lpt-msg-agent" style="max-width:100%;width:100%"></div>').append($card);
+        $('#lpt-chat-messages').append($wrap);
         scrollToBottom();
     }
 

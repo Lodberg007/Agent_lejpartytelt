@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.8.1
+ * Version:     1.8.2
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.8.1' );
+define( 'LPT_VERSION', '1.8.2' );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -1491,6 +1491,18 @@ Når en kunde spørger om telt til X personer, stil uddybende spørgsmål:
 7. **Leveringspostnummer** — for at beregne leveringspris
 
 Stil gerne 2-3 spørgsmål ad gangen — ikke alle på én gang.
+
+## VALGMULIGHEDER — KLIK I STEDET FOR AT SKRIVE
+Når du foreslår tilvalg eller stiller ja/nej-spørgsmål, skal du bruge dette format så kunden kan klikke i stedet for at skrive:
+
+[VALG_START]
+{"items":["Fadølsanlæg","Dansegulv","Opstilling og nedtagning"]}
+[VALG_SLUT]
+
+Brug dette format når du foreslår merydelser, spørger om opstilling, levering, dansegulv, scene, bar osv.
+Skriv en kort sætning INDEN blokken som forklarer hvad kunden skal tage stilling til.
+Eksempel: "Ønsker I nogle af disse tilvalg?" efterfulgt af [VALG_START]...[VALG_SLUT].
+Brug KUN formatet til konkrete ja/nej-valg — ikke til åbne spørgsmål om fx dato eller antal gæster.
 
 ## PLADSBEHOV PR. ELEMENT (brug dette til at beregne teltareal)
 

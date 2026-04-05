@@ -19,31 +19,13 @@
     align-self: center;
     user-select: none;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 0 6px;
+    padding: 0 4px;
 }
-.lpt-col-arrow::before {
-    content: '';
-    display: block;
-    width: 36px;
-    height: 6px;
-    background: var(--lpt-primary, #ed254e);
-    border-radius: 3px 0 0 3px;
-    opacity: 0.7;
-}
-.lpt-col-arrow::after {
-    content: '';
-    display: block;
-    width: 0;
-    height: 0;
-    border-top: 14px solid transparent;
-    border-bottom: 14px solid transparent;
-    border-left: 18px solid var(--lpt-primary, #ed254e);
-    opacity: 0.7;
-    margin-top: -16px;
-    margin-left: 36px;
+.lpt-col-arrow svg {
+    width: 48px;
+    height: 28px;
+    overflow: visible;
 }
 
 /* ── CHAT HEADER ── */
@@ -468,6 +450,55 @@
     display: inline-block;
 }
 .lpt-slide-dot.active { background: var(--lpt-primary, #ed254e); }
+
+/* ── VALGMULIGHEDER ── */
+.lpt-choices-card {
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    width: 100%;
+}
+.lpt-choice-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 14px;
+    border-bottom: 1px solid #f3f4f6;
+    gap: 12px;
+    transition: background 0.1s;
+}
+.lpt-choice-row:last-child { border-bottom: none; }
+.lpt-choice-label { font-size: 0.93rem; color: #1f2937; flex: 1; }
+.lpt-choice-btns  { display: flex; gap: 6px; flex-shrink: 0; }
+.lpt-choice-btn {
+    background: none;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 1;
+}
+.lpt-choice-btn:hover         { border-color: #9ca3af; background: #f9fafb; }
+.lpt-choice-yes.selected      { background: #f0fdf4; border-color: #86efac; }
+.lpt-choice-no.selected       { background: #fef2f2; border-color: #fca5a5; }
+.lpt-choices-confirm {
+    display: block;
+    width: 100%;
+    padding: 11px;
+    background: var(--lpt-primary, #ed254e);
+    color: #fff;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.lpt-choices-confirm:hover    { background: var(--lpt-primary-dark, #c01b3e); }
+.lpt-choices-confirm:disabled { background: #d1d5db; cursor: not-allowed; }
+.lpt-choices-done .lpt-choice-btn { pointer-events: none; opacity: 0.5; }
 
 /* ── UTILITIES ── */
 .lpt-hidden { display: none !important; }
