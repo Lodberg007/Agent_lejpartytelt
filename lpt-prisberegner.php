@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.5.7
+ * Version:     1.5.8
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.5.7' );
+define( 'LPT_VERSION', '1.5.8' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -1393,14 +1393,20 @@ Foreslå disse produkter når konteksten passer — men pres ikke:
 - Stol, polstret sort ↔ Stol, hvid m. sædehynde
 - Stol, hvid plastik → Stol, hvid m. sædehynde (lidt mere komfort)
 
-## VIS PRODUKTBILLEDER
-Når en kunde spørger om at se et produkt (fx "Kan du vise mig gulvet?" eller "Hvordan ser barvognen ud?"), afslut dit svar med:
+## VIS PRODUKTBILLEDER — VIGTIGT
+Når du nævner, anbefaler eller diskuterer specifikke produkter, skal du ALTID afslutte dit svar med:
 
 [BILLEDER_START]
-{"products":["Gulv, grå klinke","Barvogn"]}
+{"products":["Produktnavn 1","Produktnavn 2"]}
 [BILLEDER_SLUT]
 
-Brug de præcise produktnavne fra prislisten. Du kan vise 1-4 produkter ad gangen. Billederne vises automatisk i produktpanelet til højre.
+Eksempler på hvornår du bruger det:
+- Kunden spørger om stoletyper → vis de relevante stoletyper
+- Du anbefaler et telt → vis teltet
+- Du nævner gulv, barvogn, fadølsanlæg → vis dem
+- Du sammenligner produkter → vis dem alle
+
+Brug de præcise produktnavne fra prislisten. Billederne vises automatisk i produktpanelet som et slideshow.
 
 ## TILBUD-FORMAT
 Når du har nok information (inkl. dato) til at præsentere et konkret tilbud, afslut dit svar med denne blok (INGEN linjeskift inde i JSON):

@@ -395,7 +395,11 @@
         });
     }
 
-    /* ── VISUELT PRODUKTPANEL (højre) ── */
+    /* ── VISUELT PRODUKTPANEL (højre) — SLIDESHOW ── */
+    let slideshowTimer = null;
+    let slideshowIndex = 0;
+    let slideshowItems = [];
+
     function updateVisualPanel(offer) {
         const $body = $('#lpt-visual-body');
         if (!$body.length) return;
@@ -403,36 +407,102 @@
         const lines = offer.lines || [];
         if (lines.length === 0) return;
 
-        let html = '';
-
+        // Byg liste af produkter med billeddata
+        slideshowItems = [];
         lines.forEach(function (l) {
             const imgData = findImage(l.name);
-            const imgUrl  = imgData && imgData.url  ? imgData.url  : '';
-            const link    = imgData && imgData.link ? imgData.link : '';
-
-            const nameHtml  = esc(l.name);
-            const priceHtml = `<div class="lpt-visual-price">${fmt(l.unitPrice)} kr/dag</div>`;
-            const linkAttr  = link ? ` href="${esc(link)}" target="_blank" rel="noopener"` : '';
-
-            if (imgUrl) {
-                html += `
-                    <div class="lpt-visual-card">
-                        <a${linkAttr}>
-                            <img src="${esc(imgUrl)}" alt="${nameHtml}">
-                        </a>
-                        <div class="lpt-visual-name">${link ? `<a${linkAttr}>${nameHtml}</a>` : nameHtml}</div>
-                        ${priceHtml}
-                    </div>`;
-            } else {
-                html += `
-                    <div class="lpt-visual-card lpt-visual-card-text">
-                        <div class="lpt-visual-name">${link ? `<a${linkAttr}>${nameHtml}</a>` : nameHtml}</div>
-                        ${priceHtml}
-                    </div>`;
-            }
+            slideshowItems.push({
+                name:  l.name,
+                price: l.unitPrice || 0,
+                url:   imgData && imgData.url  ? imgData.url  : '',
+                link:  imgData && imgData.link ? imgData.link : '',
+            });
         });
 
-        $body.removeClass('lpt-visual-empty').html(html);
+        if (slideshowItems.length === 0) return;
+
+        // Stop evt. kørende slideshow
+        if (slideshowTimer) { clearInterval(slideshowTimer); slideshowTimer = null; }
+        slideshowIndex = 0;
+
+        // Opbyg slideshow-container
+        $body.removeClass('lpt-visual-empty').html(`
+            <div class="lpt-slide-wrap">
+                <div class="lpt-slide-img-wrap">
+                    <img class="lpt-slide-img" src="" alt="">
+                    <div class="lpt-slide-no-img lpt-hidden">📦</div>
+                </div>
+                <div class="lpt-slide-name"></div>
+                <div class="lpt-slide-price"></div>
+                <div class="lpt-slide-dots"></div>
+            </div>
+        `);
+
+        // Dots
+        if (slideshowItems.length > 1) {
+            let dots = '';
+            slideshowItems.forEach(function(_, i) {
+                dots += `<span class="lpt-slide-dot${i === 0 ? ' active' : ''}" data-i="${i}"></span>`;
+            });
+            $body.find('.lpt-slide-dots').html(dots);
+            $body.find('.lpt-slide-dots').on('click', '.lpt-slide-dot', function() {
+                slideshowIndex = parseInt($(this).data('i'));
+                renderSlide($body, slideshowIndex);
+                resetTimer($body);
+            });
+        }
+
+        renderSlide($body, 0);
+
+        // Start slideshow kun hvis mere end 1 produkt
+        if (slideshowItems.length > 1) {
+            slideshowTimer = setInterval(function() {
+                slideshowIndex = (slideshowIndex + 1) % slideshowItems.length;
+                renderSlide($body, slideshowIndex);
+            }, 3000);
+        }
+    }
+
+    function renderSlide($body, index) {
+        const item = slideshowItems[index];
+        if (!item) return;
+
+        const $img    = $body.find('.lpt-slide-img');
+        const $noImg  = $body.find('.lpt-slide-no-img');
+        const $name   = $body.find('.lpt-slide-name');
+        const $price  = $body.find('.lpt-slide-price');
+
+        if (item.url) {
+            $img.attr('src', item.url).attr('alt', item.name).removeClass('lpt-hidden');
+            $noImg.addClass('lpt-hidden');
+            if (item.link) {
+                $img.closest('.lpt-slide-img-wrap').find('a').remove();
+                $img.wrap(`<a href="${esc(item.link)}" target="_blank" rel="noopener"></a>`);
+            }
+        } else {
+            $img.addClass('lpt-hidden');
+            $noImg.removeClass('lpt-hidden');
+        }
+
+        if (item.link) {
+            $name.html(`<a href="${esc(item.link)}" target="_blank" rel="noopener">${esc(item.name)}</a>`);
+        } else {
+            $name.text(item.name);
+        }
+        $price.text(item.price > 0 ? fmt(item.price) + ' kr/dag' : '');
+
+        // Opdater dots
+        $body.find('.lpt-slide-dot').removeClass('active').filter(`[data-i="${index}"]`).addClass('active');
+    }
+
+    function resetTimer($body) {
+        if (slideshowTimer) { clearInterval(slideshowTimer); }
+        if (slideshowItems.length > 1) {
+            slideshowTimer = setInterval(function() {
+                slideshowIndex = (slideshowIndex + 1) % slideshowItems.length;
+                renderSlide($body, slideshowIndex);
+            }, 3000);
+        }
     }
 
     function addOfferToCartFromSummary($btn, offer) {
