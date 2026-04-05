@@ -5,8 +5,10 @@
 (function ($) {
     'use strict';
 
-    const OFFER_START = '[TILBUD_START]';
-    const OFFER_END   = '[TILBUD_SLUT]';
+    const OFFER_START  = '[TILBUD_START]';
+    const OFFER_END    = '[TILBUD_SLUT]';
+    const IMG_START    = '[BILLEDER_START]';
+    const IMG_END      = '[BILLEDER_SLUT]';
 
     function dayMultiplier(days) {
         if (days <= 1) return 1.0;
@@ -84,30 +86,53 @@
 
     /* ── RENDER AGENT SVAR ── */
     function renderAgentMessage(raw) {
+        // Håndter tilbud
         const offerStart = raw.indexOf(OFFER_START);
         const offerEnd   = raw.indexOf(OFFER_END);
-
         if (offerStart !== -1 && offerEnd !== -1) {
-            // Tekst før tilbuddet
             const textBefore = raw.substring(0, offerStart).trim();
             const jsonStr    = raw.substring(offerStart + OFFER_START.length, offerEnd).trim();
             const textAfter  = raw.substring(offerEnd + OFFER_END.length).trim();
-
             if (textBefore) appendMessage('agent', textBefore);
-
             try {
                 const offer = JSON.parse(jsonStr);
                 appendOffer(offer);
-                // Broadcast til andre shortcodes på siden
                 $(document).trigger('lpt:offer', [offer]);
             } catch (e) {
                 appendMessage('agent', raw.replace(OFFER_START, '').replace(OFFER_END, '').trim());
             }
-
             if (textAfter) appendMessage('agent', textAfter);
-        } else {
-            appendMessage('agent', raw);
+            return;
         }
+
+        // Håndter produktbilleder
+        const imgStart = raw.indexOf(IMG_START);
+        const imgEnd   = raw.indexOf(IMG_END);
+        if (imgStart !== -1 && imgEnd !== -1) {
+            const textBefore = raw.substring(0, imgStart).trim();
+            const jsonStr    = raw.substring(imgStart + IMG_START.length, imgEnd).trim();
+            const textAfter  = raw.substring(imgEnd + IMG_END.length).trim();
+            if (textBefore) appendMessage('agent', textBefore);
+            try {
+                const data = JSON.parse(jsonStr);
+                showProductImages(data.products || []);
+            } catch (e) {}
+            if (textAfter) appendMessage('agent', textAfter);
+            return;
+        }
+
+        appendMessage('agent', raw);
+    }
+
+    /* ── VIS PRODUKTBILLEDER I VISUELT PANEL ── */
+    function showProductImages(productNames) {
+        if (!productNames.length) return;
+        // Byg fake offer-lines så updateVisualPanel kan genbruge eksisterende kode
+        const lines = productNames.map(function(name) {
+            const imgData = findImage(name);
+            return { name: name, unitPrice: imgData ? (imgData.price || 0) : 0 };
+        });
+        updateVisualPanel({ lines: lines });
     }
 
     /* ── TILGÆNGELIGHEDS-TJEK ── */

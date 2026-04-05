@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.5.6
+ * Version:     1.5.7
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.5.6' );
+define( 'LPT_VERSION', '1.5.7' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -1392,6 +1392,15 @@ Foreslå disse produkter når konteksten passer — men pres ikke:
 - Telt 6×12m, hvid ↔ Telt 9×9m, hvid
 - Stol, polstret sort ↔ Stol, hvid m. sædehynde
 - Stol, hvid plastik → Stol, hvid m. sædehynde (lidt mere komfort)
+
+## VIS PRODUKTBILLEDER
+Når en kunde spørger om at se et produkt (fx "Kan du vise mig gulvet?" eller "Hvordan ser barvognen ud?"), afslut dit svar med:
+
+[BILLEDER_START]
+{"products":["Gulv, grå klinke","Barvogn"]}
+[BILLEDER_SLUT]
+
+Brug de præcise produktnavne fra prislisten. Du kan vise 1-4 produkter ad gangen. Billederne vises automatisk i produktpanelet til højre.
 
 ## TILBUD-FORMAT
 Når du har nok information (inkl. dato) til at præsentere et konkret tilbud, afslut dit svar med denne blok (INGEN linjeskift inde i JSON):
