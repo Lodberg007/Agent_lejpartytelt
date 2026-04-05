@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.5.5
+ * Version:     1.5.6
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.5.5' );
+define( 'LPT_VERSION', '1.5.6' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -34,6 +34,7 @@ class LPT_Prisberegner {
         // Admin settings
         add_action( 'admin_menu',  [ $this, 'admin_menu' ] );
         add_action( 'admin_init',  [ $this, 'admin_init' ] );
+        add_action( 'admin_init',  [ $this, 'maybe_clear_cache' ] );
 
         // WooCommerce integration
         add_filter( 'woocommerce_add_cart_item_data',            [ $this, 'wc_add_cart_item_data' ],        10, 2 );
@@ -1143,7 +1144,7 @@ class LPT_Prisberegner {
             if ( empty( $groups ) ) :
             ?>
                 <div class="notice notice-warning inline" style="max-width:700px">
-                    <p><strong>Ingen faktorgrupper fundet.</strong> Tjek at API-token er korrekt og at Rentman-kontoen har adgang til <code>/rentalperiodpricegroups</code>. Ryd cache og prøv igen: <a href="<?php echo admin_url('options.php?page=lpt-prisberegner&lpt_clear_cache=1'); ?>">Ryd cache</a></p>
+                    <p><strong>Ingen faktorgrupper fundet.</strong> Tjek at API-token er korrekt. <a href="<?php echo esc_url( add_query_arg( 'lpt_clear_cache', '1' ) ); ?>">Ryd cache og prøv igen</a></p>
                 </div>
             <?php else : ?>
                 <p style="color:#666">Hentet fra Rentman og cachet i 24 timer. <a href="<?php echo esc_url( add_query_arg( 'lpt_clear_cache', '1' ) ); ?>">Tving genindlæsning</a></p>
@@ -1166,12 +1167,6 @@ class LPT_Prisberegner {
             <?php endif; ?>
 
             <?php
-            // Ryd cache hvis ?lpt_clear_cache=1
-            if ( isset( $_GET['lpt_clear_cache'] ) && current_user_can( 'manage_options' ) ) {
-                $this->clear_price_cache();
-                echo '<div class="notice notice-success inline" style="max-width:700px"><p>Cache ryddet. Genindlæser siden...</p></div>';
-                echo '<script>setTimeout(function(){ window.location.href = window.location.href.replace(/[?&]lpt_clear_cache=1/,""); }, 1200);</script>';
-            }
             ?>
         </div>
         <?php
@@ -1417,6 +1412,15 @@ PROMPT;
     }
 
     /* ── CACHE RYDNING ── */
+    public function maybe_clear_cache() {
+        if ( isset( $_GET['lpt_clear_cache'] ) && current_user_can( 'manage_options' ) ) {
+            $this->clear_price_cache();
+            $redirect = remove_query_arg( 'lpt_clear_cache' );
+            wp_safe_redirect( $redirect );
+            exit;
+        }
+    }
+
     public function clear_price_cache() {
         delete_transient( 'lpt_price_table' );
         delete_transient( 'lpt_product_map' );
