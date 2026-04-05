@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.5.8
+ * Version:     1.5.9
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.5.8' );
+define( 'LPT_VERSION', '1.5.9' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -522,7 +522,7 @@ class LPT_Prisberegner {
         check_ajax_referer( 'lpt_nonce', 'nonce' );
         if ( ! current_user_can( 'update_plugins' ) ) wp_die( 'Ikke tilladt' );
 
-        $url = get_option( 'lpt_update_url', '' );
+        $url = get_option( 'lpt_update_url', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
         if ( ! $url ) {
             wp_send_json_error( [ 'message' => 'Ingen update-URL konfigureret.' ] );
         }
@@ -565,7 +565,7 @@ class LPT_Prisberegner {
         check_ajax_referer( 'lpt_nonce', 'nonce' );
         if ( ! current_user_can( 'update_plugins' ) ) wp_die( 'Ikke tilladt' );
 
-        $url = esc_url_raw( get_option( 'lpt_update_url', '' ) );
+        $url = esc_url_raw( get_option( 'lpt_update_url', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' ) );
         if ( ! $url ) {
             wp_send_json_error( [ 'message' => 'Ingen update-URL sat under Indstillinger → LPT Prisberegner.' ] );
         }
@@ -992,8 +992,8 @@ class LPT_Prisberegner {
                         <form method="post" action="options.php" style="display:inline">
                             <?php settings_fields( 'lpt_prisberegner_group' ); ?>
                             <input type="url" name="lpt_update_url" id="lpt-update-url"
-                                   value="<?php echo esc_attr( get_option( 'lpt_update_url', '' ) ); ?>"
-                                   class="large-text" placeholder="https://...lpt-prisberegner-vX.X.X.zip">
+                                   value="<?php echo esc_attr( get_option( 'lpt_update_url', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' ) ); ?>"
+                                   class="large-text" placeholder="https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip">
                             <?php submit_button( 'Gem URL', 'secondary', 'submit', false ); ?>
                         </form>
                     </td>
