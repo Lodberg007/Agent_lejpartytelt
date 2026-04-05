@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.6.0
+ * Version:     1.6.1
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.6.0' );
+define( 'LPT_VERSION', '1.6.1' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -1594,26 +1594,27 @@ PROMPT;
             'order'    => 'ASC',
         ] );
 
-        $tents      = [];
-        $chairs     = [];
-        $tables     = [];
-        $floor      = [];
-        $heat       = [];
-        $light      = [];
-        $setup      = [];
-        $other      = [];
+        $tents   = []; $chairs  = []; $tables = [];
+        $floor   = []; $heat    = []; $light  = [];
+        $setup   = []; $funfood = []; $bar    = [];
+        $other   = [];
 
         foreach ( $products as $product ) {
             $price = function_exists( 'wc_get_price_including_tax' )
                 ? (float) wc_get_price_including_tax( $product )
                 : (float) $product->get_price();
-            if ( $price <= 0 ) continue;
 
             $name  = $product->get_name();
-            $lower = mb_strtolower( $name, 'UTF-8' );
-            $line  = $name . ' = ' . number_format( $price, 2, ',', '.' ) . ' kr inkl. moms';
+            $desc  = wp_strip_all_tags( $product->get_short_description() );
+            $desc  = $desc ? ' — ' . mb_substr( $desc, 0, 120, 'UTF-8' ) : '';
 
-            if ( preg_match( '/^telt\s/iu', $name ) || preg_match( '/^pavillon/iu', $name ) || preg_match( '/^scenetelt/iu', $name ) ) {
+            $price_str = $price > 0
+                ? number_format( $price, 2, ',', '.' ) . ' kr inkl. moms'
+                : 'kontakt for pris';
+
+            $line = $name . ' = ' . $price_str . $desc;
+
+            if ( preg_match( '/^(telt|pavillon|scenetelt)\s/iu', $name ) ) {
                 $tents[] = $line;
             } elseif ( preg_match( '/^stol/iu', $name ) ) {
                 $chairs[] = $line;
@@ -1627,21 +1628,25 @@ PROMPT;
                 $light[] = $line;
             } elseif ( preg_match( '/^(opstilling|op\/nedtagning|lejpartytelt\.dk op)/iu', $name ) ) {
                 $setup[] = $line;
+            } elseif ( preg_match( '/popcorn|slush|candyfloss|sukkerspind|vaffel|funfood/iu', $name ) ) {
+                $funfood[] = $line;
+            } elseif ( preg_match( '/barvogn|fadøl|bar /iu', $name ) ) {
+                $bar[] = $line;
             } else {
                 $other[] = $line;
             }
         }
 
-        $table  = "### Telte\n" . implode( "\n", $tents ?: [ '(ingen fundet)' ] ) . "\n\n";
-        $table .= "### Stole\n" . implode( "\n", $chairs ?: [ '(ingen fundet)' ] ) . "\n\n";
-        $table .= "### Borde\n" . implode( "\n", $tables ?: [ '(ingen fundet)' ] ) . "\n\n";
-        $table .= "### Gulv\n" . implode( "\n", $floor ?: [ '(ingen fundet)' ] ) . "\n\n";
-        $table .= "### Varme\n" . implode( "\n", $heat ?: [ '(ingen fundet)' ] ) . "\n\n";
-        $table .= "### Lys\n" . implode( "\n", $light ?: [ '(ingen fundet)' ] ) . "\n\n";
+        $table  = "### Telte\n"    . implode( "\n", $tents   ?: [ '(ingen fundet)' ] ) . "\n\n";
+        $table .= "### Stole\n"    . implode( "\n", $chairs  ?: [ '(ingen fundet)' ] ) . "\n\n";
+        $table .= "### Borde\n"    . implode( "\n", $tables  ?: [ '(ingen fundet)' ] ) . "\n\n";
+        $table .= "### Gulv\n"     . implode( "\n", $floor   ?: [ '(ingen fundet)' ] ) . "\n\n";
+        $table .= "### Varme\n"    . implode( "\n", $heat    ?: [ '(ingen fundet)' ] ) . "\n\n";
+        $table .= "### Lys\n"      . implode( "\n", $light   ?: [ '(ingen fundet)' ] ) . "\n\n";
+        if ( ! empty( $funfood ) ) $table .= "### Funfood (popcorn, slushice m.fl.)\n" . implode( "\n", $funfood ) . "\n\n";
+        if ( ! empty( $bar ) )     $table .= "### Bar og fadøl\n"                      . implode( "\n", $bar )     . "\n\n";
         $table .= "### Opstilling og nedtagning (engangspris — IKKE ganges med dage)\n" . implode( "\n", $setup ?: [ '(ingen fundet)' ] ) . "\n\n";
-        if ( ! empty( $other ) ) {
-            $table .= "### Øvrigt udstyr\n" . implode( "\n", array_slice( $other, 0, 50 ) ) . "\n";
-        }
+        if ( ! empty( $other ) )   $table .= "### Øvrigt udstyr\n"                     . implode( "\n", $other )   . "\n";
 
         // Cache i 1 time
         set_transient( 'lpt_price_table', $table, HOUR_IN_SECONDS );
