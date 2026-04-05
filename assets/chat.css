@@ -2,21 +2,21 @@
    LPT Chat — chat.css
 ───────────────────────────────────────────── */
 
-/* ── TO-KOLONNE LAYOUT ── */
+/* ── LAYOUT ── */
 .lpt-layout {
     display: flex;
     gap: 20px;
     align-items: flex-start;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
 }
-.lpt-chat-column    { flex: 1 1 38%; min-width: 0; }
-.lpt-summary-column { flex: 1 1 35%; min-width: 0; position: sticky; top: 20px; }
-.lpt-visual-column  { flex: 1 1 24%; min-width: 0; position: sticky; top: 20px; }
+.lpt-chat-column    { flex: 1 1 0; min-width: 0; }
+.lpt-summary-column { flex: 1 1 0; min-width: 0; position: sticky; top: 20px; }
+.lpt-visual-column  { flex: 1.4 1 0; min-width: 0; position: sticky; top: 20px; }
 
 /* ── CHAT HEADER ── */
 .lpt-chat-header {
-    background: #2563eb;
+    background: var(--lpt-primary, #2563eb);
     color: #fff;
     font-weight: 700;
     font-size: 1rem;
@@ -33,7 +33,7 @@
     box-shadow: 0 2px 8px rgba(0,0,0,.06);
 }
 .lpt-live-summary-header {
-    background: #1e3a5f;
+    background: var(--lpt-header-dark, #1e3a5f);
     color: #fff;
     font-weight: 700;
     font-size: 1rem;
@@ -54,7 +54,7 @@
     background: #f8fafc;
     border-bottom: 1px solid #e5e7eb;
     font-size: 0.85rem;
-    color: #374151;
+    color: var(--lpt-header-vis, #374151);
 }
 .lpt-sum-meta span {
     background: #e0e7ff;
@@ -89,7 +89,7 @@
     color: #1f2937;
 }
 .lpt-sum-name a { color: #1f2937; text-decoration: none; }
-.lpt-sum-name a:hover { text-decoration: underline; color: #2563eb; }
+.lpt-sum-name a:hover { text-decoration: underline; color: var(--lpt-primary, #2563eb); }
 .lpt-sum-name em { color: #6b7280; font-style: normal; font-size: 0.82rem; }
 .lpt-sum-img {
     width: 36px; height: 36px;
@@ -102,18 +102,18 @@
 .lpt-sum-img-placeholder { width: 36px; height: 36px; flex-shrink: 0; }
 .lpt-sum-price { color: #6b7280; white-space: nowrap; }
 .lpt-sum-total { text-align: right; font-weight: 600; color: #1f2937; white-space: nowrap; }
-.lpt-sum-delivery td { color: #374151; font-style: italic; }
+.lpt-sum-delivery td { color: var(--lpt-header-vis, #374151); font-style: italic; }
 
 .lpt-sum-grand {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    background: #eff6ff;
-    border-top: 2px solid #2563eb;
+    background: var(--lpt-primary-light, #eff6ff);
+    border-top: 2px solid var(--lpt-primary, #2563eb);
     font-size: 1rem;
 }
-.lpt-sum-grand strong { font-size: 1.25rem; color: #1d4ed8; }
+.lpt-sum-grand strong { font-size: 1.25rem; color: var(--lpt-primary-dark, #1d4ed8); }
 
 .lpt-sum-note { font-size: 0.8rem; color: #6b7280; padding: 6px 16px 0; margin: 0; }
 
@@ -121,7 +121,7 @@
 .lpt-sum-cart-btn {
     width: 100%;
     padding: 12px;
-    background: #2563eb;
+    background: var(--lpt-primary, #2563eb);
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -130,7 +130,7 @@
     cursor: pointer;
     transition: background 0.15s;
 }
-.lpt-sum-cart-btn:hover    { background: #1d4ed8; }
+.lpt-sum-cart-btn:hover    { background: var(--lpt-primary-dark, #1d4ed8); }
 .lpt-sum-cart-btn:disabled { background: #93c5fd; cursor: not-allowed; }
 
 .lpt-sum-msg { margin-top: 8px; font-size: 0.88rem; padding: 8px 10px; border-radius: 6px; }
@@ -139,8 +139,7 @@
 .lpt-sum-msg a   { color: inherit; font-weight: 600; }
 
 .lpt-chat-wrap {
-    max-width: 720px;
-    margin: 0 auto;
+    width: 100%;
     font-family: inherit;
     display: flex;
     flex-direction: column;
@@ -152,7 +151,7 @@
 
 /* ── MESSAGES ── */
 .lpt-chat-messages {
-    height: 520px;
+    height: clamp(400px, 60vh, 640px);
     overflow-y: auto;
     padding: 20px 16px;
     background: #f8fafc;
@@ -177,7 +176,7 @@
     line-height: 1.55;
     word-break: break-word;
 }
-.lpt-msg-user  .lpt-msg-bubble { background: #2563eb; color: #fff; border-bottom-right-radius: 4px; }
+.lpt-msg-user  .lpt-msg-bubble { background: var(--lpt-primary, #2563eb); color: #fff; border-bottom-right-radius: 4px; }
 .lpt-msg-agent .lpt-msg-bubble { background: #fff; color: #1f2937; border: 1px solid #e5e7eb; border-bottom-left-radius: 4px; }
 
 /* ── TYPING DOTS ── */
@@ -203,7 +202,7 @@
 /* ── TILBUDS-KORT ── */
 .lpt-offer-card {
     background: #fff;
-    border: 2px solid #2563eb;
+    border: 2px solid var(--lpt-primary, #2563eb);
     border-radius: 12px;
     padding: 18px 20px;
     width: 100%;
@@ -216,11 +215,11 @@
     margin-bottom: 14px;
 }
 .lpt-offer-title { font-weight: 700; font-size: 1rem; color: #1f2937; }
-.lpt-offer-mult  { font-size: 0.85rem; background: #eff6ff; color: #1d4ed8; padding: 2px 8px; border-radius: 20px; }
+.lpt-offer-mult  { font-size: 0.85rem; background: var(--lpt-primary-light, #eff6ff); color: var(--lpt-primary-dark, #1d4ed8); padding: 2px 8px; border-radius: 20px; }
 
 .lpt-offer-dates {
     font-size: 0.82rem;
-    color: #374151;
+    color: var(--lpt-header-vis, #374151);
     background: #f0fdf4;
     border: 1px solid #bbf7d0;
     border-radius: 6px;
@@ -252,21 +251,21 @@
     flex-shrink: 0;
 }
 .lpt-offer-line:last-child   { border-bottom: none; }
-.lpt-offer-delivery .lpt-offer-name { color: #374151; }
-.lpt-offer-name  { flex: 1; color: #374151; }
+.lpt-offer-delivery .lpt-offer-name { color: var(--lpt-header-vis, #374151); }
+.lpt-offer-name  { flex: 1; color: var(--lpt-header-vis, #374151); }
 .lpt-offer-price { font-weight: 600; color: #1f2937; white-space: nowrap; margin-left: 12px; }
 
 .lpt-offer-total {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #eff6ff;
+    background: var(--lpt-primary-light, #eff6ff);
     border-radius: 8px;
     padding: 10px 14px;
     margin-bottom: 10px;
     font-size: 1rem;
 }
-.lpt-offer-total strong { font-size: 1.3rem; color: #1d4ed8; }
+.lpt-offer-total strong { font-size: 1.3rem; color: var(--lpt-primary-dark, #1d4ed8); }
 
 .lpt-offer-note {
     font-size: 0.82rem;
@@ -277,7 +276,7 @@
 .lpt-offer-btn {
     width: 100%;
     padding: 13px;
-    background: #2563eb;
+    background: var(--lpt-primary, #2563eb);
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -286,7 +285,7 @@
     cursor: pointer;
     transition: background 0.15s;
 }
-.lpt-offer-btn:hover    { background: #1d4ed8; }
+.lpt-offer-btn:hover    { background: var(--lpt-primary-dark, #1d4ed8); }
 .lpt-offer-btn:disabled { background: #93c5fd; cursor: not-allowed; }
 
 .lpt-offer-msg { margin-top: 10px; font-size: 0.9rem; border-radius: 6px; padding: 8px 12px; }
@@ -314,11 +313,11 @@
     line-height: 1.4;
     transition: border-color 0.15s;
 }
-.lpt-chat-input:focus { border-color: #2563eb; outline: none; }
+.lpt-chat-input:focus { border-color: var(--lpt-primary, #2563eb); outline: none; }
 
 .lpt-chat-send {
     padding: 10px 20px;
-    background: #2563eb;
+    background: var(--lpt-primary, #2563eb);
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -328,7 +327,7 @@
     transition: background 0.15s;
     align-self: flex-end;
 }
-.lpt-chat-send:hover    { background: #1d4ed8; }
+.lpt-chat-send:hover    { background: var(--lpt-primary-dark, #1d4ed8); }
 .lpt-chat-send:disabled { background: #93c5fd; cursor: not-allowed; }
 
 /* ── VISUELT PRODUKTPANEL ── */
@@ -340,7 +339,7 @@
     box-shadow: 0 2px 8px rgba(0,0,0,.06);
 }
 .lpt-visual-header {
-    background: #374151;
+    background: var(--lpt-header-vis, #374151);
     color: #fff;
     font-weight: 700;
     font-size: 1rem;
@@ -373,7 +372,7 @@
     padding: 10px;
 }
 .lpt-visual-name  { font-size: 0.82rem; font-weight: 600; color: #1f2937; margin-bottom: 2px; }
-.lpt-visual-name a { color: #2563eb; text-decoration: none; }
+.lpt-visual-name a { color: var(--lpt-primary, #2563eb); text-decoration: none; }
 .lpt-visual-name a:hover { text-decoration: underline; }
 .lpt-visual-card > a { display: block; }
 .lpt-visual-price { font-size: 0.78rem; color: #6b7280; }
@@ -386,7 +385,7 @@
 .lpt-slide-img-wrap {
     position: relative;
     width: 100%;
-    aspect-ratio: 4/3;
+    aspect-ratio: 3/2;
     background: #f3f4f6;
     border-radius: 8px;
     overflow: hidden;
@@ -412,7 +411,7 @@
     margin-bottom: 4px;
 }
 .lpt-slide-name a {
-    color: #2563eb;
+    color: var(--lpt-primary, #2563eb);
     text-decoration: none;
 }
 .lpt-slide-name a:hover { text-decoration: underline; }
@@ -436,19 +435,32 @@
     transition: background 0.2s;
     display: inline-block;
 }
-.lpt-slide-dot.active { background: #2563eb; }
+.lpt-slide-dot.active { background: var(--lpt-primary, #2563eb); }
 
 /* ── UTILITIES ── */
 .lpt-hidden { display: none !important; }
 
 /* ── RESPONSIVE ── */
-@media (max-width: 900px) {
-    .lpt-layout { flex-direction: column; }
-    .lpt-summary-column,
-    .lpt-visual-column { position: static; }
+
+/* Tablet: chat + summary side om side, produkter under */
+@media (max-width: 1024px) {
+    .lpt-layout { flex-wrap: wrap; }
+    .lpt-chat-column    { flex: 1 1 48%; }
+    .lpt-summary-column { flex: 1 1 48%; position: static; }
+    .lpt-visual-column  { flex: 1 1 100%; position: static; }
 }
-@media (max-width: 560px) {
-    .lpt-chat-messages { height: 400px; }
-    .lpt-msg { max-width: 95%; }
-    .lpt-offer-total { flex-direction: column; align-items: flex-start; gap: 4px; }
+
+/* Mobil: alt stables lodret */
+@media (max-width: 640px) {
+    .lpt-layout { flex-direction: column; gap: 14px; }
+    .lpt-chat-column,
+    .lpt-summary-column,
+    .lpt-visual-column  { flex: 1 1 100%; position: static; }
+
+    .lpt-chat-messages  { height: clamp(320px, 55vh, 480px); }
+    .lpt-msg            { max-width: 95%; }
+    .lpt-offer-total    { flex-direction: column; align-items: flex-start; gap: 4px; }
+
+    /* Produktpanel: kompakt vandret slideshow på mobil */
+    .lpt-slide-img-wrap { aspect-ratio: 16/9; }
 }

@@ -97,7 +97,6 @@
             try {
                 const offer = JSON.parse(jsonStr);
                 appendOffer(offer);
-                $(document).trigger('lpt:offer', [offer]);
             } catch (e) {
                 appendMessage('agent', raw.replace(OFFER_START, '').replace(OFFER_END, '').trim());
             }
@@ -248,9 +247,15 @@
             checkAvailability(offer);
         }
 
-        const $wrap = $('<div class="lpt-msg lpt-msg-agent lpt-msg-offer"></div>').append(card);
-        $('#lpt-chat-messages').append($wrap);
-        scrollToBottom();
+        // Vis tilbudskortet i summary-panelet hvis det findes — ellers i chatten
+        if ($('#lpt-live-summary-body').length) {
+            $(document).trigger('lpt:offer', [offer]);
+            appendMessage('agent', '✅ Dit tilbud er klar — se det i tilbudspanelet til højre.');
+        } else {
+            const $wrap = $('<div class="lpt-msg lpt-msg-agent lpt-msg-offer"></div>').append(card);
+            $('#lpt-chat-messages').append($wrap);
+            scrollToBottom();
+        }
     }
 
     /* ── LÆGG I KURV (individuelle produkter) ── */

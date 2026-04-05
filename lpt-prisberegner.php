@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.6.5
+ * Version:     1.7.4
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.6.5' );
+define( 'LPT_VERSION', '1.7.4' );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -66,6 +66,7 @@ class LPT_Prisberegner {
         add_shortcode( 'lpt-chat',      [ $this, 'shortcode_chat' ] );
         add_shortcode( 'lpt-tilbud',    [ $this, 'shortcode_tilbud' ] );
         add_shortcode( 'lpt-produkter', [ $this, 'shortcode_produkter' ] );
+        add_shortcode( 'lpt-komplet',   [ $this, 'shortcode_komplet' ] ); // Samlet layout med alle tre paneler
         add_action( 'wp_ajax_lpt_chat_message',        [ $this, 'ajax_chat_message' ] );
         add_action( 'wp_ajax_nopriv_lpt_chat_message', [ $this, 'ajax_chat_message' ] );
 
@@ -86,8 +87,55 @@ class LPT_Prisberegner {
         return $value;
     }
 
+    /* ── API-NØGLER: konstant i wp-config.php har forrang over databaseindstilling ── */
+    private function get_api_key(): string {
+        if ( defined( 'LPT_API_KEY' ) && LPT_API_KEY ) return LPT_API_KEY;
+        return (string) get_option( 'lpt_api_key', '' );
+    }
+
+    private function get_rentman_token(): string {
+        if ( defined( 'LPT_RENTMAN_TOKEN' ) && LPT_RENTMAN_TOKEN ) return LPT_RENTMAN_TOKEN;
+        return (string) get_option( 'lpt_rentman_token', '' );
+    }
+
+    /* ── CSS-VARIABLER FRA INDSTILLINGER ── */
+    private function get_color( string $key, string $default ): string {
+        $val = get_option( $key, $default );
+        return preg_match( '/^#[0-9a-fA-F]{3,6}$/', $val ) ? $val : $default;
+    }
+
+    public function output_color_vars() {
+        $primary      = $this->get_color( 'lpt_color_primary',     '#2563eb' );
+        $primary_dark = $this->get_color( 'lpt_color_primary_dark', '#1d4ed8' );
+        $header_dark  = $this->get_color( 'lpt_color_header_dark',  '#1e3a5f' );
+        $header_vis   = $this->get_color( 'lpt_color_header_vis',   '#374151' );
+        echo "<style>:root{" .
+            "--lpt-primary:{$primary};" .
+            "--lpt-primary-dark:{$primary_dark};" .
+            "--lpt-header-dark:{$header_dark};" .
+            "--lpt-header-vis:{$header_vis};" .
+            "--lpt-primary-light:" . $this->hex_to_light( $primary ) . ";" .
+        "}</style>\n";
+    }
+
+    // Laver en lys baggrunds-variant af primærfarven (10% opacity over hvid)
+    private function hex_to_light( string $hex ): string {
+        $hex = ltrim( $hex, '#' );
+        if ( strlen( $hex ) === 3 ) $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+        $r = hexdec( substr( $hex, 0, 2 ) );
+        $g = hexdec( substr( $hex, 2, 2 ) );
+        $b = hexdec( substr( $hex, 4, 2 ) );
+        // Bland med hvid (90% hvid, 10% farve)
+        $lr = (int) round( $r * 0.1 + 255 * 0.9 );
+        $lg = (int) round( $g * 0.1 + 255 * 0.9 );
+        $lb = (int) round( $b * 0.1 + 255 * 0.9 );
+        return sprintf( '#%02x%02x%02x', $lr, $lg, $lb );
+    }
+
     /* ── ASSETS ── */
     public function enqueue_assets() {
+        add_action( 'wp_head', [ $this, 'output_color_vars' ], 20 );
+
         wp_enqueue_style(
             'lpt-prisberegner',
             LPT_URL . 'assets/calculator.css',
@@ -372,7 +420,7 @@ class LPT_Prisberegner {
 
     /* ── RENTMAN: FAKTORGRUPPER ── */
     private function rentman_get( string $endpoint ) {
-        $token = get_option( 'lpt_rentman_token', '' );
+        $token = $this->get_rentman_token();
         if ( ! $token ) return null;
 
         $response = wp_remote_get( 'https://api.rentman.net/' . $endpoint, [
@@ -394,7 +442,7 @@ class LPT_Prisberegner {
         $cached = get_transient( 'lpt_rentman_factors' );
         if ( $cached !== false ) return $cached;
 
-        $token = get_option( 'lpt_rentman_token', '' );
+        $token = $this->get_rentman_token();
         if ( ! $token ) {
             set_transient( 'lpt_rentman_factors', [], HOUR_IN_SECONDS );
             return [];
@@ -446,7 +494,7 @@ class LPT_Prisberegner {
         check_ajax_referer( 'lpt_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Ikke tilladt' );
 
-        $token = get_option( 'lpt_rentman_token', '' );
+        $token = $this->get_rentman_token();
         if ( ! $token ) {
             wp_send_json_error( [ 'message' => 'Ingen API-token konfigureret.' ] );
         }
@@ -705,6 +753,11 @@ class LPT_Prisberegner {
     public function ajax_add_items_to_cart() {
         check_ajax_referer( 'lpt_nonce', 'nonce' );
 
+        // Sørg for at WooCommerce-sessionen er startet (kræves for AJAX-kurv)
+        if ( function_exists( 'WC' ) && WC()->session && ! WC()->session->has_session() ) {
+            WC()->session->set_customer_session_cookie( true );
+        }
+
         $raw   = sanitize_textarea_field( wp_unslash( $_POST['offer'] ?? '' ) );
         $offer = json_decode( $raw, true );
         if ( ! is_array( $offer ) || empty( $offer['lines'] ) ) {
@@ -899,6 +952,18 @@ class LPT_Prisberegner {
         register_setting( 'lpt_prisberegner_group', 'lpt_rentman_token',       [ 'sanitize_callback' => 'sanitize_text_field' ] );
         register_setting( 'lpt_prisberegner_group', 'lpt_rentman_meta_key',    [ 'sanitize_callback' => 'sanitize_text_field' ] );
         register_setting( 'lpt_prisberegner_group', 'lpt_update_url',          [ 'sanitize_callback' => 'esc_url_raw' ] );
+        register_setting( 'lpt_prisberegner_group', 'lpt_color_primary',      [ 'sanitize_callback' => 'sanitize_hex_color' ] );
+        register_setting( 'lpt_prisberegner_group', 'lpt_color_primary_dark', [ 'sanitize_callback' => 'sanitize_hex_color' ] );
+        register_setting( 'lpt_prisberegner_group', 'lpt_color_header_dark',  [ 'sanitize_callback' => 'sanitize_hex_color' ] );
+        register_setting( 'lpt_prisberegner_group', 'lpt_color_header_vis',   [ 'sanitize_callback' => 'sanitize_hex_color' ] );
+
+        // Indlæs WP color picker på indstillingssiden
+        add_action( 'admin_enqueue_scripts', function( $hook ) {
+            if ( $hook === 'settings_page_lpt-prisberegner' ) {
+                wp_enqueue_style( 'wp-color-picker' );
+                wp_enqueue_script( 'wp-color-picker' );
+            }
+        });
     }
 
     public function settings_page() {
@@ -914,19 +979,31 @@ class LPT_Prisberegner {
                     <tr>
                         <th scope="row">Claude API-nøgle</th>
                         <td>
+                            <?php $api_const = defined( 'LPT_API_KEY' ) && LPT_API_KEY; ?>
                             <input type="text" name="lpt_api_key"
-                                   value="<?php echo esc_attr( get_option( 'lpt_api_key', '' ) ); ?>"
-                                   class="regular-text" placeholder="sk-ant-...">
-                            <p class="description">API-nøgle fra <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a> — bruges til AI-chat-rådgiveren.</p>
+                                   value="<?php echo $api_const ? esc_attr( substr( LPT_API_KEY, 0, 8 ) . '••••••••••••' ) : esc_attr( get_option( 'lpt_api_key', '' ) ); ?>"
+                                   class="regular-text" placeholder="sk-ant-..."
+                                   <?php echo $api_const ? 'disabled style="background:#f0fdf4;color:#166534"' : ''; ?>>
+                            <?php if ( $api_const ) : ?>
+                                <p class="description" style="color:#166534">✅ Sat via konstant i wp-config.php — feltet er låst.</p>
+                            <?php else : ?>
+                                <p class="description">API-nøgle fra <a href="https://console.anthropic.com/" target="_blank">console.anthropic.com</a> — bruges til AI-chat-rådgiveren.</p>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <tr>
                         <th scope="row">Rentman API-token</th>
                         <td>
+                            <?php $rm_const = defined( 'LPT_RENTMAN_TOKEN' ) && LPT_RENTMAN_TOKEN; ?>
                             <input type="text" name="lpt_rentman_token"
-                                   value="<?php echo esc_attr( get_option( 'lpt_rentman_token', '' ) ); ?>"
-                                   class="regular-text" placeholder="Dit Rentman API-token">
-                            <p class="description">Bruges til at tjekke produkttilgængelighed i Rentman under chat-samtalen.</p>
+                                   value="<?php echo $rm_const ? esc_attr( substr( LPT_RENTMAN_TOKEN, 0, 8 ) . '••••••••••••' ) : esc_attr( get_option( 'lpt_rentman_token', '' ) ); ?>"
+                                   class="regular-text" placeholder="Dit Rentman API-token"
+                                   <?php echo $rm_const ? 'disabled style="background:#f0fdf4;color:#166534"' : ''; ?>>
+                            <?php if ( $rm_const ) : ?>
+                                <p class="description" style="color:#166534">✅ Sat via konstant i wp-config.php — feltet er låst.</p>
+                            <?php else : ?>
+                                <p class="description">Bruges til at tjekke produkttilgængelighed i Rentman under chat-samtalen.</p>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <tr>
@@ -994,6 +1071,39 @@ class LPT_Prisberegner {
 
                 <?php submit_button( 'Gem indstillinger' ); ?>
             </form>
+
+            <hr>
+            <h2>Farver</h2>
+            <p>Tilpas farverne i chat, tilbud og produktpanelerne.</p>
+            <form method="post" action="options.php">
+                <?php settings_fields( 'lpt_prisberegner_group' ); ?>
+                <table class="form-table" style="max-width:700px">
+                    <?php
+                    $colors = [
+                        'lpt_color_primary'      => [ 'Primærfarve (knapper, rammer, header)',   '#2563eb' ],
+                        'lpt_color_primary_dark'  => [ 'Primærfarve mørk (hover-effekt)',          '#1d4ed8' ],
+                        'lpt_color_header_dark'   => [ 'Tilbudspanel header-baggrund',             '#1e3a5f' ],
+                        'lpt_color_header_vis'    => [ 'Produktpanel header-baggrund',             '#374151' ],
+                    ];
+                    foreach ( $colors as $key => [$label, $default] ) :
+                        $val = get_option( $key, $default );
+                    ?>
+                    <tr>
+                        <th scope="row"><?php echo esc_html( $label ); ?></th>
+                        <td>
+                            <input type="text" name="<?php echo esc_attr( $key ); ?>"
+                                   value="<?php echo esc_attr( $val ); ?>"
+                                   class="lpt-color-picker"
+                                   data-default-color="<?php echo esc_attr( $default ); ?>">
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </table>
+                <?php submit_button( 'Gem farver' ); ?>
+            </form>
+            <script>
+            jQuery(function($){ $('.lpt-color-picker').wpColorPicker(); });
+            </script>
 
             <hr>
             <h2>Plugin-opdatering</h2>
@@ -1120,7 +1230,7 @@ class LPT_Prisberegner {
             </div>
             <p style="color:#888;font-size:0.85rem;margin-top:12px">Plugin version <?php echo LPT_VERSION; ?></p>
 
-            <?php if ( get_option( 'lpt_rentman_token', '' ) ) : ?>
+            <?php if ( $this->get_rentman_token() ) : ?>
             <hr>
             <h2>Rentman — Faktorgrupper (fra API)</h2>
             <p>
@@ -1190,11 +1300,11 @@ class LPT_Prisberegner {
         ob_start();
         ?>
         <div id="lpt-chat" class="lpt-chat-wrap">
-            <div class="lpt-chat-header">💬 Lejerådgiver</div>
+            <div class="lpt-chat-header">🎉 Lejpartytelt's festrådgiver</div>
             <div class="lpt-chat-messages" id="lpt-chat-messages" role="log" aria-live="polite">
                 <div class="lpt-msg lpt-msg-agent">
                     <div class="lpt-msg-bubble">
-                        Hej! Jeg er din lejerådgiver fra Lejpartytelt.dk 👋<br><br>
+                        Hej! Jeg er Lejpartytelt's festrådgiver 👋<br><br>
                         Fortæl mig hvad du skal bruge — fx <em>"Jeg skal holde konfirmation for 50 personer lørdag"</em> — så sammensætter jeg et tilbud til dig.
                     </div>
                 </div>
@@ -1237,11 +1347,30 @@ class LPT_Prisberegner {
         return ob_get_clean();
     }
 
+    /* ── SHORTCODE: KOMPLET LAYOUT (chat + tilbud + produkter i ét) ── */
+    public function shortcode_komplet( $atts ) {
+        ob_start();
+        ?>
+        <div class="lpt-layout">
+            <div class="lpt-chat-column">
+                <?php echo $this->shortcode_chat( $atts ); ?>
+            </div>
+            <div class="lpt-summary-column">
+                <?php echo $this->shortcode_tilbud( $atts ); ?>
+            </div>
+            <div class="lpt-visual-column">
+                <?php echo $this->shortcode_produkter( $atts ); ?>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
     /* ── AJAX: chat besked ── */
     public function ajax_chat_message() {
         check_ajax_referer( 'lpt_nonce', 'nonce' );
 
-        $api_key = get_option( 'lpt_api_key', '' );
+        $api_key = $this->get_api_key();
         if ( ! $api_key ) {
             wp_send_json_error( [ 'message' => 'AI-rådgiveren er ikke konfigureret endnu. Kontakt os direkte.' ] );
         }
@@ -1308,9 +1437,15 @@ class LPT_Prisberegner {
         $product_factors = $this->build_product_factor_group_map_prompt();
 
         return <<<PROMPT
-Du er en venlig og professionel lejerådgiver for Lejpartytelt.dk — en dansk udlejningsvirksomhed i Esbjerg-området, der udlejer telte, møbler, lyd, lys og festudstyr.
+Du er Lejpartytelt's festrådgiver — en venlig og professionel rådgiver for Lejpartytelt.dk, en dansk udlejningsvirksomhed i Esbjerg-området, der udlejer telte, møbler, lyd, lys og festudstyr.
 
 Dit mål er at hjælpe kunden med at sammensætte det BEDST passende tilbud — ikke det dyreste. Stil opklarende spørgsmål hvis du mangler oplysninger (antal gæster, antal dage, leveringspostnummer, om de vil have opstilling). Svar altid på dansk.
+
+## TONE OG STEMNING
+Tilpas din tone til arrangementet:
+- **Fest, fødselsdage, bryllup, konfirmationer, firmafester, festivaler** → vær varm, begejstret og festlig i sproget 🎉. Brug gerne emojis som 🎂🥳🎊🍾🇩🇰 ved fødselsdage eller jubilæer. Vis at du glæder dig på kundens vegne.
+- **Mindehøjtideligheder, bisættelse eller begravelse** → vær rolig, respektfuld og diskret. Ingen emojis, ingen festlig tone.
+- **Neutral/ukendt formål** → hold en venlig og professionel tone.
 
 ## PRISREGLER
 
@@ -1398,6 +1533,9 @@ Foreslå disse produkter når konteksten passer — men pres ikke:
 - **Barvogn** → ved byfester, større firmafester — vi har en flot barvogn som er ideel
 - **Funfood-maskiner** (popcorn, slushice m.fl.) → ved børneselskaber, sommerfester, festivaler — disse produkter findes på hjemmesiden og skal tilbydes med pris fra prislisten
 - **Kopper til slush ice** hedder "Plastikkrus 0,3 liter inkl. opvask efter brug" — IKKE "bæger til softice"
+- **Opvask på service** → Alle service-produkter (kopper, tallerkner, glas, bestik) inkluderer ALTID tvungen opvask fra Lejpartytelt.dk — det er inkluderet i prisen. Kunden skal blot returnere det i bakkerne som ved modtagelse. Tallerkner og bestik skal skylles af for madrester — resten klarer Lejpartytelt.
+- **Tvungen levering** → Softice-maskiner og køleskabe SKAL leveres og afhentes af Lejpartytelt.dk — kunden kan ikke selv transportere dem. Leveringspris tilføjes altid til tilbuddet for disse produkter.
+- **Telte og opstilling** → Lejpartytelt.dk er ALTID med ved opsætning og nedtagning af telte. Kunden kan dog vælge at medbringe egne hjælpere, hvilket kan spare 500–750 kr afhængigt af teltets størrelse. Spørg om kunden ønsker at spare ved at stille med hjælpere.
 - **All-inclusive barløsning** → ikke tilgængelig online, direkter kunden:
   *"For en komplet all-inclusive barløsning bedes du kontakte os direkte: tlf. 72 40 67 10 eller kontakt@lejpartytelt.dk"*
 
@@ -1437,6 +1575,54 @@ Felter:
 - total = sum af alle lineTotals + delivery
 - setup_notes: sammenfat hvad kunden har sagt om opsætning/nedtagning (kan være tom streng)
 - Brug kun [TILBUD_START]/[TILBUD_SLUT] når tilbuddet er komplet — vent med tilbuddet hvis dato mangler
+
+## LEJEBETINGELSER (lejpartytelt.dk)
+
+Alle produkter er produktforsikrede og gennemgås jævnligt. Telte og hoppeborge er godkendt og forsikret efter dansk lovgivning.
+
+### Generelle betingelser
+- Leje kun til person over 21 år med gyldig billedlegitimation.
+- Depositum kan kræves i sjældne tilfælde svarende til udstyrets værdi.
+- Betaling: kontant, kontooverførsel eller Dankort. Faktura til firmaer / EAN til det offentlige.
+- Rente ved forfald: 0,7 % pr. påbegyndt måned. Inkasso via Debito efter 2. påmindelse.
+- Bestilt antal kan reduceres med max 20 % indtil 7 dage før udlejning.
+- Ansvar over for offentlig myndighed påhviler lejer alene. Udlejer er ikke erstatningspligtig for skader på personer/ting i eller ved teltet, og har intet ansvar for nedgravede kabler, kloakrør eller vandledninger i opsætningsarealet.
+
+### Afbestilling (efter underskrevet kontrakt)
+- Over 30 dage før: 0 % af lejeprisen
+- Under 30 dage før: 25 %
+- Under 14 dage før: 50 %
+- Under 7 dage før: 100 %
+- Forbrugsvarer (engangsduge, softice-mix, fadølsfustager, sodavand til postmix m.v.): altid 0 % ved afbestilling.
+
+### Skader og forsikring
+- Tyveri og skader i udlejningsperioden dækkes af lejer/lejers forsikring. Bortkomst/totalskade erstattes til fuld nyværdi.
+- Lejer kan ikke forvente opsætning ved så dårligt vejr eller force majeure at udstyret lider væsentlig skade.
+- Teltene er godkendt til vedvarende vindstyrke op til 24 m/s.
+- Ved driftsforstyrrelser/fejl kontaktes Lejpartytelt.dk straks på tlf. 7240-6710. Kontaktes vi ikke umiddelbart efter en fejl er konstateret, kan der ikke efterfølgende kræves kompensation.
+- Booking er bekræftet når kunden har underskrevet den digitale kontrakt der sendes efter booking.
+
+### Betingelser for telte/pavilloner
+- Ingen tape eller lignende på teltdugen — brug snor eller strips til ophæng i åse.
+- Konfetti SKAL fjernes fra teltdugene umiddelbart efter brug (afgiver farve når fugtig).
+- Myggelys, fakler og grill er FORBUDT i/ved teltene pga. sod — gebyr for rengøring/erstatning ved sod.
+- Almindelige stearinlys og fyrfadslys ER tilladt.
+- Teltet skal være rengjort og tømt ved nedtagning. Stænk/spild vaskes af teltduge og gulve.
+
+### Betingelser for øvrigt materiel (borde, stole, maskiner)
+- Maskiner skal kun tømmes efter brug — ingen rengøring, det klarer Lejpartytelt.
+- Borde og stole skal rengøres og aftørres inden returnering.
+- Borde/stole skal transporteres i ly for vejr (ikke åben trailer uden presenning).
+
+### Betingelser for hoppeborge
+- Kun brug i tørvejr — ved regn: sluk blæseren og dæk med presenning.
+- Skal være under opsyn af person på min. 18 år.
+- Ved levering/afhentning: 2 hjælpere påkrævet. Min. 1 meters bredde adgang, ingen trapper.
+- Opsætningssted skal være fri for skarpe sten og dyreekskrementer.
+- Ingen pløkmulighed: lej min. 2 betonblokke pr. hoppeborg (4 til Jungle Safari).
+- Rengøring ved aflevering: fejning med blød kost, evt. afvask. Afleveres den beskidt/våd: 1.200 kr. i rengøringsgebyr.
+- Forgæves kørsel og udvidet lejeperiode beregnes hvis udstyret ikke er tilgængeligt ved afhentning.
+- Forsikringen dækker ikke skader på brugerne — alle aktiviteter benyttes på eget ansvar.
 PROMPT;
     }
 
@@ -1541,7 +1727,7 @@ PROMPT;
 
     /* ── RENTMAN TILGÆNGELIGHED ── */
     private function check_rentman_availability( array $items, string $start_date, string $end_date ) {
-        $token = get_option( 'lpt_rentman_token', '' );
+        $token = $this->get_rentman_token();
         if ( ! $token ) return [ 'error' => 'Ingen Rentman API-token konfigureret.' ];
 
         // Byg query for hvert item
