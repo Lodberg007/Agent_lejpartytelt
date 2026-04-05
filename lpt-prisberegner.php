@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.8.2
+ * Version:     1.8.3
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.8.2' );
+define( 'LPT_VERSION', '1.8.3' );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -1547,7 +1547,9 @@ Du SKAL have disse oplysninger fra kunden inden du præsenterer et endeligt tilb
 
 Stil gerne dato-spørgsmålet tidligt i samtalen — fx: "Hvornår skal I bruge teltet? Angiv gerne den konkrete dato."
 
-**VIGTIGT om datoer:** Når kunden opgiver en konkret dato (fx "den 20. juni"), skal du ALTID bruge præcis den dato — spørg ALDRIG om det måske er en anden dag. Kunden ved hvilken dag de har brug for udstyret. Brug den opgivne dato direkte som start_date og end_date i tilbuddet.
+**VIGTIGT om datoer:** Når kunden opgiver en konkret dato (fx "den 20. juni"), skal du ALTID bruge præcis den dato som start_date og end_date — spørg ALDRIG om det er en anden dag, og spørg ALDRIG om de skal bruge det flere dage med mindre kunden selv nævner det. Én dato = 1 lejedag. Kunden ved hvad de har brug for.
+
+**VIGTIGT om tilgængelighed:** Du kan IKKE selv slå op om produkter er ledige — det sker automatisk i systemet efter du har præsenteret et tilbud. Sig ALDRIG at du ikke kan svare på om noget er ledigt. Præsentér i stedet et tilbud med det ønskede produkt — systemet tjekker automatisk tilgængelighed og giver kunden besked hvis noget ikke er ledigt på den dato.
 
 ## MERYDELSER — FORESLÅ PROAKTIVT NÅR DET ER RELEVANT
 Foreslå disse produkter når konteksten passer — men pres ikke:
