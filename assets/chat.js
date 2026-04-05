@@ -105,36 +105,33 @@
         renderSegment(raw);
     }
 
-    // Renderer et tekststykke som kan indeholde BILLEDER og/eller VALG tags (i vilkårlig rækkefølge)
+    // Renderer et tekststykke — bruger regex for robust parsing af BILLEDER og VALG tags
     function renderSegment(text) {
-        // Find alle tags og sorter dem efter position
-        const tags = [];
-        const addTag = function(start, end, type, tagStartLen, tagEndLen) {
-            if (start !== -1 && end !== -1) tags.push({ start, end: end + tagEndLen, type, jsonStart: start + tagStartLen, jsonEnd: end });
-        };
-        addTag(text.indexOf(IMG_START),  text.indexOf(IMG_END),  'img',  IMG_START.length,  IMG_END.length);
-        addTag(text.indexOf(VALG_START), text.indexOf(VALG_END), 'valg', VALG_START.length, VALG_END.length);
-        tags.sort(function(a,b){ return a.start - b.start; });
+        // Regex der finder alle kendte tags i rækkefølge
+        const tagRe = /\[BILLEDER_START\]([\s\S]*?)\[BILLEDER_SLUT\]|\[VALG_START\]([\s\S]*?)\[VALG_SLUT\]/g;
+        let match, cursor = 0, anyTag = false;
 
-        if (tags.length === 0) {
-            if (text.trim()) appendMessage('agent', text.trim());
-            return;
-        }
-
-        let cursor = 0;
-        tags.forEach(function(tag) {
-            const before = text.substring(cursor, tag.start).trim();
+        while ((match = tagRe.exec(text)) !== null) {
+            anyTag = true;
+            const before = text.substring(cursor, match.index).trim();
             if (before) appendMessage('agent', before);
-            const jsonStr = text.substring(tag.jsonStart, tag.jsonEnd).trim();
+
+            const isImg  = match[1] !== undefined;
+            const isValg = match[2] !== undefined;
+            const jsonStr = (isImg ? match[1] : match[2]).trim();
+
             try {
                 const data = JSON.parse(jsonStr);
-                if (tag.type === 'img')  showProductImages(data.products || []);
-                if (tag.type === 'valg') appendChoices(data.items || []);
+                if (isImg)  showProductImages(data.products || []);
+                if (isValg) appendChoices(data.items || []);
             } catch(e) {}
-            cursor = tag.end;
-        });
+
+            cursor = match.index + match[0].length;
+        }
+
         const after = text.substring(cursor).trim();
         if (after) appendMessage('agent', after);
+        if (!anyTag && text.trim()) appendMessage('agent', text.trim());
     }
 
     /* ── VIS PRODUKTBILLEDER I VISUELT PANEL ── */
