@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.5.3
+ * Version:     1.5.4
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.5.3' );
+define( 'LPT_VERSION', '1.5.4' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -526,13 +526,15 @@ class LPT_Prisberegner {
             wp_send_json_error( [ 'message' => 'Ingen update-URL konfigureret.' ] );
         }
 
-        // Forvent en version.json ved samme base-URL eller eksplicit URL
-        // Prøv at udlæse version fra URL'en selv (hvis den ender på version.json)
-        // eller byg version-check URL ved at erstatte .zip med -version.json
-        $version_url = preg_replace( '/\.zip$/i', '-version.json', $url );
-        if ( $version_url === $url ) {
-            // URL peger ikke på en zip — brug direkte som version.json
-            $version_url = rtrim( $url, '/' ) . '/version.json';
+        // Byg version-check URL
+        // GitHub releases-URL → brug raw.githubusercontent.com/…/main/version.json
+        if ( preg_match( '#github\.com/([^/]+/[^/]+)/releases/#', $url, $m ) ) {
+            $version_url = 'https://raw.githubusercontent.com/' . $m[1] . '/main/version.json';
+        } else {
+            $version_url = preg_replace( '/\.zip$/i', '-version.json', $url );
+            if ( $version_url === $url ) {
+                $version_url = rtrim( $url, '/' ) . '/version.json';
+            }
         }
 
         $resp = wp_remote_get( $version_url, [ 'timeout' => 10 ] );
