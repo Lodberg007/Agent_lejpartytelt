@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.8.9
+ * Version:     1.9.0
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.8.9' );
+define( 'LPT_VERSION', '1.9.0' );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -877,25 +877,23 @@ class LPT_Prisberegner {
             'Stol, hvid plastik'       => 'Stol, hvid m. sædehynde',
         ];
 
-        // Byg item-liste med Rentman-IDs
+        // Hent Rentman navn→ID map og match produkter på navn
+        $rentman_map    = $this->get_rentman_name_id_map();
         $items_to_check = [];
         foreach ( $lines as $line ) {
-            $name  = sanitize_text_field( $line['name'] ?? '' );
-            $lower = mb_strtolower( $name, 'UTF-8' );
-            foreach ( $product_map as $pname => $pdata ) {
-                if ( mb_strtolower( $pname, 'UTF-8' ) === $lower && ! empty( $pdata['rentman_id'] ) ) {
-                    $items_to_check[] = [
-                        'name'       => $name,
-                        'qty'        => (int) ( $line['qty'] ?? 1 ),
-                        'rentman_id' => $pdata['rentman_id'],
-                    ];
-                    break;
-                }
+            $name       = sanitize_text_field( $line['name'] ?? '' );
+            $rentman_id = $this->find_rentman_id_by_name( $name, $rentman_map );
+            if ( $rentman_id ) {
+                $items_to_check[] = [
+                    'name'       => $name,
+                    'qty'        => (int) ( $line['qty'] ?? 1 ),
+                    'rentman_id' => $rentman_id,
+                ];
             }
         }
 
         if ( empty( $items_to_check ) ) {
-            wp_send_json_success( [ 'ok' => true, 'skipped' => true ] ); // Ingen Rentman-IDs — skip
+            wp_send_json_success( [ 'ok' => true, 'skipped' => true ] ); // Ingen match i Rentman — skip
         }
 
         $availability = $this->check_rentman_availability( $items_to_check, $start_date, $end_date );
@@ -1702,6 +1700,7 @@ PROMPT;
         delete_transient( 'lpt_rentman_meta_key' );
         delete_transient( 'lpt_rentman_factors' );
         delete_transient( 'lpt_rentman_equip_factors' );
+        delete_transient( 'lpt_rentman_name_id_map' );
     }
 
     /* ── SAMLET PRODUKT-DATA MAP (navn → {id, price, url, link, rentman_id}) ── */
@@ -1786,6 +1785,60 @@ PROMPT;
     }
 
     /* ── RENTMAN TILGÆNGELIGHED ── */
+    /* ── Hent alle Rentman-produkter og byg navn→ID map (cached 1 time) ── */
+    private function get_rentman_name_id_map(): array {
+        $cached = get_transient( 'lpt_rentman_name_id_map' );
+        if ( $cached !== false ) return $cached;
+
+        $token = $this->get_rentman_token();
+        if ( ! $token ) return [];
+
+        $map  = [];
+        $page = 1;
+        do {
+            $data = $this->rentman_get( 'equipment?fields=id,displayname&limit=100&page=' . $page );
+            if ( ! is_array( $data ) || empty( $data ) ) break;
+            foreach ( $data as $item ) {
+                $id   = (string) ( $item['id'] ?? '' );
+                $name = trim( $item['displayname'] ?? '' );
+                if ( $id && $name ) {
+                    $map[ mb_strtolower( $name, 'UTF-8' ) ] = $id;
+                }
+            }
+            $page++;
+        } while ( count( $data ) === 100 );
+
+        set_transient( 'lpt_rentman_name_id_map', $map, HOUR_IN_SECONDS );
+        return $map;
+    }
+
+    /* ── Fuzzy navn-normalisering (samme logik som JS-siden) ── */
+    private function normalize_name( string $name ): string {
+        $name = mb_strtolower( $name, 'UTF-8' );
+        $name = str_replace( ['×', 'x'], 'x', $name );
+        $name = preg_replace( '/[,\.]+/', ' ', $name );
+        $name = preg_replace( '/\s+/', ' ', $name );
+        return trim( $name );
+    }
+
+    /* ── Slå Rentman-ID op ud fra produktnavn ── */
+    private function find_rentman_id_by_name( string $wc_name, array $rentman_map ): ?string {
+        $lower = mb_strtolower( $wc_name, 'UTF-8' );
+        // Eksakt match
+        if ( isset( $rentman_map[ $lower ] ) ) return $rentman_map[ $lower ];
+        // Normaliseret match
+        $norm = $this->normalize_name( $wc_name );
+        foreach ( $rentman_map as $rname => $rid ) {
+            if ( $this->normalize_name( $rname ) === $norm ) return $rid;
+        }
+        // Delvist match
+        foreach ( $rentman_map as $rname => $rid ) {
+            $rn = $this->normalize_name( $rname );
+            if ( str_contains( $rn, $norm ) || str_contains( $norm, $rn ) ) return $rid;
+        }
+        return null;
+    }
+
     private function check_rentman_availability( array $items, string $start_date, string $end_date ) {
         $token = $this->get_rentman_token();
         if ( ! $token ) return [ 'error' => 'Ingen Rentman API-token konfigureret.' ];
