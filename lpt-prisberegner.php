@@ -3,14 +3,14 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.8.8
+ * Version:     1.8.9
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'LPT_VERSION', '1.8.8' );
+define( 'LPT_VERSION', '1.8.9' );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -1547,7 +1547,10 @@ Du SKAL have disse oplysninger fra kunden inden du præsenterer et endeligt tilb
 
 Stil gerne dato-spørgsmålet tidligt i samtalen — fx: "Hvornår skal I bruge teltet? Angiv gerne den konkrete dato."
 
-**VIGTIGT om datoer:** Når kunden opgiver en konkret dato (fx "den 20. juni"), skal du ALTID bruge præcis den dato som start_date og end_date — spørg ALDRIG om det er en anden dag, og spørg ALDRIG om de skal bruge det flere dage med mindre kunden selv nævner det. Én dato = 1 lejedag. Kunden ved hvad de har brug for.
+**VIGTIGT om datoer — ABSOLUT REGEL:**
+- Når kunden opgiver én dato (fx "den 20. juni"), er start_date = end_date = den dato. Spørg ALDRIG om de skal bruge det dagen efter, flere dage, eller om de har brug for det længere. Én dato = 1 lejedag = multiplier 1.0.
+- Spørg ALDRIG opfølgende spørgsmål om antal dage. Lav tilbuddet direkte med de oplysninger kunden har givet.
+- Kunden tilføjer selv ekstra dage hvis de har brug for det.
 
 **VIGTIGT om tilgængelighed — LÆS DETTE NØJE:**
 Når en kunde spørger om et produkt er ledigt en bestemt dato, skal du ALTID svare sådan:
