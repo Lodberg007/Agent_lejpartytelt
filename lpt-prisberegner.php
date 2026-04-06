@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.11.5
+ * Version:     1.11.6
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -655,39 +655,55 @@ class LPT_Prisberegner {
         check_ajax_referer( 'lpt_nonce', 'nonce' );
         if ( ! current_user_can( 'update_plugins' ) ) wp_die( 'Ikke tilladt' );
 
-        $url = esc_url_raw( ( get_option( 'lpt_update_url' ) ?: LPT_UPDATE_URL ) );
+        $url = esc_url_raw( get_option( 'lpt_update_url' ) ?: LPT_UPDATE_URL );
         if ( ! $url ) {
-            wp_send_json_error( [ 'message' => 'Ingen update-URL sat under Indstillinger → LPT Prisberegner.' ] );
+            wp_send_json_error( [ 'message' => 'Ingen update-URL konfigureret.' ] );
         }
 
         require_once ABSPATH . 'wp-admin/includes/file.php';
-        require_once ABSPATH . 'wp-admin/includes/misc.php';
-        require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-        require_once ABSPATH . 'wp-admin/includes/class-wp-ajax-upgrader-skin.php';
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
-        $skin     = new WP_Ajax_Upgrader_Skin();
-        $upgrader = new Plugin_Upgrader( $skin );
-
-        // install() med overwrite_package overskriver eksisterende mappe
-        $result = $upgrader->install( $url, [ 'overwrite_package' => true ] );
-
-        if ( is_wp_error( $result ) ) {
-            wp_send_json_error( [ 'message' => $result->get_error_message() ] );
-        }
-        if ( $result === false ) {
-            $errors = $skin->get_errors();
-            $msg    = is_wp_error( $errors ) ? $errors->get_error_message() : 'Ukendt fejl under installation.';
-            wp_send_json_error( [ 'message' => $msg ] );
+        // Download ZIP til temp-fil
+        $tmp_file = download_url( $url, 60 );
+        if ( is_wp_error( $tmp_file ) ) {
+            wp_send_json_error( [ 'message' => 'Download fejlede: ' . $tmp_file->get_error_message() ] );
         }
 
-        // Ryd alle plugin-caches efter opdatering
+        // Klargør WP_Filesystem
+        WP_Filesystem();
+        global $wp_filesystem;
+
+        // Unzip til temp-mappe
+        $tmp_dir = trailingslashit( get_temp_dir() ) . 'lpt-update-' . time();
+        $unzip   = unzip_file( $tmp_file, $tmp_dir );
+        @unlink( $tmp_file );
+
+        if ( is_wp_error( $unzip ) ) {
+            wp_send_json_error( [ 'message' => 'Unzip fejlede: ' . $unzip->get_error_message() ] );
+        }
+
+        $plugin_slug = 'lpt-prisberegner';
+        $dest        = WP_PLUGIN_DIR . '/' . $plugin_slug . '/';
+        $src         = trailingslashit( $tmp_dir ) . $plugin_slug . '/';
+
+        if ( ! is_dir( $src ) ) {
+            // Forsøg at finde plugin-mappen i temp-dir
+            $subdirs = glob( trailingslashit( $tmp_dir ) . '*', GLOB_ONLYDIR );
+            $src     = ! empty( $subdirs ) ? trailingslashit( $subdirs[0] ) : $src;
+        }
+
+        // Slet gammel mappe og kopier ny
+        $wp_filesystem->delete( $dest, true );
+        copy_dir( $src, $dest );
+
+        // Ryd temp og caches
+        $wp_filesystem->delete( $tmp_dir, true );
         $this->clear_price_cache();
         wp_clean_plugins_cache( true );
 
-        // Genaktivér pluginnet automatisk (install() deaktiverer det)
-        $plugin_file = 'lpt-prisberegner/lpt-prisberegner.php';
+        // Sørg for pluginnet forbliver aktivt
+        $plugin_file = $plugin_slug . '/' . $plugin_slug . '.php';
         if ( ! is_plugin_active( $plugin_file ) ) {
-            require_once ABSPATH . 'wp-admin/includes/plugin.php';
             activate_plugin( $plugin_file );
         }
 
