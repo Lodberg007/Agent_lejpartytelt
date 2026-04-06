@@ -161,21 +161,16 @@
             const data = res.data;
             if (data.skipped || data.ok) return; // Alt ledigt eller tjek sprunget over
 
-            // Byg besked til Claude om utilgængelighed
             const unavail = data.unavailable || [];
             if (unavail.length === 0) return;
 
-            let msg = 'Tilgængelhedstjek: ';
-            const parts = unavail.map(function(u) {
-                let s = '"' + u.name + '" er ikke ledigt i perioden ' + offer.start_date + ' til ' + offer.end_date;
-                if (u.alternative) s += '. Alternativ: "' + u.alternative + '"';
-                return s;
-            });
-            msg += parts.join('; ') + '. Foreslå alternativerne og præsentér et opdateret tilbud med de ledige produkter.';
+            // Vis direkte i chatten — send IKKE til Claude (Claude ville lave nyt tilbud med anden dato)
+            const names = unavail.map(u => '"' + u.name + '"').join(', ');
+            const dateStr = offer.start_date === offer.end_date ? offer.start_date : offer.start_date + ' – ' + offer.end_date;
+            appendMessage('agent', '⚠️ ' + names + ' er desværre ikke ledigt den ' + dateStr + '. Vælg venligst en anden dato.');
 
-            // Indsæt automatisk som systembesked og send til Claude
-            appendMessage('agent', '⚠️ Jeg tjekker tilgængelighed på dine ønsker...');
-            sendAutoMessage(msg);
+            // Deaktivér kurv-knapperne så kunden ikke kan lægge utilgængeligt tilbud i kurven
+            $('.lpt-offer-btn, .lpt-sum-cart-btn').prop('disabled', true).text('⛔ Ikke ledigt — vælg anden dato');
         });
     }
 
@@ -261,7 +256,7 @@
         // Vis tilbudskortet i summary-panelet hvis det findes — ellers i chatten
         if ($('#lpt-live-summary-body').length) {
             $(document).trigger('lpt:offer', [offer]);
-            appendMessage('agent', '✅ Dit tilbud er klar — se det i tilbudspanelet til højre.');
+            // Ingen ekstra besked i chatten — Claudes egne ord (textBefore) er nok
         } else {
             const $wrap = $('<div class="lpt-msg lpt-msg-agent lpt-msg-offer"></div>').append(card);
             $('#lpt-chat-messages').append($wrap);

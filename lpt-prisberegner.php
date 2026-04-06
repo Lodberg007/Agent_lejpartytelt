@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.9.0
+ * Version:     1.11.2
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -42,6 +42,7 @@ class LPT_Prisberegner {
         add_filter( 'woocommerce_get_item_data',                 [ $this, 'wc_get_item_data' ],             10, 2 );
         add_action( 'woocommerce_before_calculate_totals',       [ $this, 'wc_set_cart_item_price' ],       10, 1 );
         add_action( 'woocommerce_checkout_create_order_line_item', [ $this, 'wc_save_order_meta' ],         10, 4 );
+        add_action( 'wp_footer',                                 [ $this, 'wc_inject_rental_dates_js' ] );
 
         // AJAX — kurv (gammel pakke-metode bevares for calculator-shortcode)
         add_action( 'wp_ajax_lpt_add_to_cart',        [ $this, 'ajax_add_to_cart' ] );
@@ -321,18 +322,19 @@ class LPT_Prisberegner {
     public function wc_get_item_data( $item_data, $cart_item ) {
         // Ny chat-agent metode: individuelle produkter med multiplikator
         if ( isset( $cart_item['lpt_unit_price'] ) ) {
-            $days = $cart_item['lpt_days'] ?? 1;
-            $mult = $cart_item['lpt_multiplier'] ?? 1.0;
-            $item_data[] = [
-                'name'  => 'Lejeperiode',
-                'value' => $days . ' dag(e) × ' . number_format( $mult, 1, ',', '' ),
-            ];
-            if ( ! empty( $cart_item['lpt_start_date'] ) ) {
-                $item_data[] = [ 'name' => 'Fra dato', 'value' => esc_html( $cart_item['lpt_start_date'] ) ];
+            $start = $cart_item['lpt_start_date'] ?? '';
+            $end   = $cart_item['lpt_end_date']   ?? '';
+            $days  = $cart_item['lpt_days'] ?? 1;
+            $mult  = $cart_item['lpt_multiplier'] ?? 1.0;
+
+            // Lejeperiode — vis altid
+            $period = $days . ' dag' . ( $days > 1 ? 'e' : '' );
+            if ( $start ) {
+                $period .= ' (' . $start;
+                if ( $end && $end !== $start ) $period .= ' – ' . $end;
+                $period .= ')';
             }
-            if ( ! empty( $cart_item['lpt_end_date'] ) ) {
-                $item_data[] = [ 'name' => 'Til dato',  'value' => esc_html( $cart_item['lpt_end_date'] ) ];
-            }
+            $item_data[] = [ 'name' => 'Lejeperiode', 'value' => $period ];
             return $item_data;
         }
 
@@ -369,6 +371,49 @@ class LPT_Prisberegner {
                 );
             }
         }
+    }
+
+    /* ── WOOCOMMERCE: udfyld Rental period-felter automatisk via JS ── */
+    public function wc_inject_rental_dates_js() {
+        if ( ! function_exists( 'WC' ) || ! WC()->session ) return;
+        if ( ! is_cart() && ! is_checkout() ) return;
+
+        $from = WC()->session->get( 'lpt_rental_from_display' ); // Format: DD-MM-YYYY
+        $to   = WC()->session->get( 'lpt_rental_to_display' );
+        if ( ! $from ) return;
+        ?>
+        <script>
+        (function() {
+            function fillRentalDates() {
+                var from = <?php echo json_encode( $from ); ?>;
+                var to   = <?php echo json_encode( $to ?: $from ); ?>;
+
+                // Eksakte felt-id'er fra Rentman WooCommerce-pluginnet
+                var map = {
+                    '#rental-period-start': from,
+                    '#rental-period-end':   to,
+                };
+                Object.keys(map).forEach(function(sel) {
+                    var el = document.querySelector(sel);
+                    if ( el ) {
+                        el.value = map[sel];
+                        el.dispatchEvent(new Event('change', {bubbles: true}));
+                        el.dispatchEvent(new Event('input',  {bubbles: true}));
+                    }
+                });
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', fillRentalDates);
+            } else {
+                fillRentalDates();
+            }
+            // Kør også efter WooCommerce cart-opdateringer
+            document.addEventListener('updated_wc_div', fillRentalDates);
+            document.addEventListener('updated_cart_totals', fillRentalDates);
+        })();
+        </script>
+        <?php
     }
 
     /* ── WOOCOMMERCE: gem meta på ordre ── */
@@ -839,9 +884,21 @@ class LPT_Prisberegner {
             }
         }
 
-        // Gem opsætningsønsker i WooCommerce sessionen — checkout-siden læser dem automatisk
-        if ( $setup_notes && WC()->session ) {
-            WC()->session->set( 'lpt_setup_notes', $setup_notes );
+        // Gem datoer og opsætningsønsker i WooCommerce sessionen
+        if ( WC()->session ) {
+            if ( $start_date ) {
+                // Gem i flere formater da Rentman-plugins bruger forskellige nøgler
+                // Format YYYY-MM-DD → DD-MM-YYYY (som Rentman-pluginnet viser)
+                $from_display = implode( '-', array_reverse( explode( '-', $start_date ) ) );
+                $to_display   = implode( '-', array_reverse( explode( '-', $end_date ?: $start_date ) ) );
+                WC()->session->set( 'lpt_rental_from', $start_date );
+                WC()->session->set( 'lpt_rental_to',   $end_date ?: $start_date );
+                WC()->session->set( 'lpt_rental_from_display', $from_display );
+                WC()->session->set( 'lpt_rental_to_display',   $to_display );
+            }
+            if ( $setup_notes ) {
+                WC()->session->set( 'lpt_setup_notes', $setup_notes );
+            }
         }
 
         if ( $added === 0 ) {
@@ -1447,6 +1504,8 @@ Du er Lejpartytelt's festrådgiver — en venlig og professionel rådgiver for L
 
 Dit mål er at hjælpe kunden med at sammensætte det BEDST passende tilbud — ikke det dyreste. Stil opklarende spørgsmål hvis du mangler oplysninger (antal gæster, antal dage, leveringspostnummer, om de vil have opstilling). Svar altid på dansk.
 
+**SVAR KORT OG PRÆCIST** — undgå lange forklaringer. Stil maks. 2 spørgsmål ad gangen. Brug korte sætninger. Ingen lange indledninger eller opsamlinger.
+
 ## TONE OG STEMNING
 Tilpas din tone til arrangementet:
 - **Fest, fødselsdage, bryllup, konfirmationer, firmafester, festivaler** → vær varm, begejstret og festlig i sproget 🎉. Brug gerne emojis som 🎂🥳🎊🍾🇩🇰 ved fødselsdage eller jubilæer. Vis at du glæder dig på kundens vegne.
@@ -1471,7 +1530,8 @@ Hvert produkt har sin egen faktorgruppe — brug den korrekte faktor for HVERT p
 {$factor_prompt}
 {$product_factors}
 ### Øvrige regler
-- Levering og afhentning i Esbjerg og omegn: {$delivery_cost} kr inkl. moms
+- **Postnummer 6700–6715:** Levering og afhentning 250 kr inkl. moms
+- Andre postnumre: aftales særskilt — du kan ikke oplyse en pris, men sig at vi kontakter kunden med leveringspris
 - Ingen depositum. Vi sender lejekontrakt efter booking, som kunden skal godkende inden aftalen er bindende.
 
 ## AKTUELLE PRISER FRA HJEMMESIDEN (pr. dag inkl. moms)
@@ -1486,21 +1546,22 @@ Når en kunde spørger om telt til X personer, stil uddybende spørgsmål:
 4. **Dansegulv** — skal der være et dansegulv? Ca. 1 m² pr. 2 gæster.
 5. **Scene/DJ** — musikanlæg, DJ-bord eller scene?
 6. **Opstilling** — ønskes hjælp til opstilling og nedtagning?
-7. **Leveringspostnummer** — for at beregne leveringspris
+7. **Levering eller afhentning** — følg disse regler UFRAVIGELIGT:
+   - **Softice-maskiner, køleskabe og telte: KAN KUN LEVERES** — afhentning er absolut ikke muligt. Leveringspris tilføjes altid automatisk til tilbuddet.
+   - **Pavilloner og øvrige produkter: KAN afhentes** på Håndværkervej 20, Esbjerg — spørg om kunden foretrækker levering eller afhentning
+   - Spørg KUN om postnummer hvis kunden ønsker/skal have levering
 
 Stil gerne 2-3 spørgsmål ad gangen — ikke alle på én gang.
 
-## VALGMULIGHEDER — KLIK I STEDET FOR AT SKRIVE
-Når du foreslår tilvalg eller stiller ja/nej-spørgsmål, skal du bruge dette format så kunden kan klikke i stedet for at skrive:
+## VALGMULIGHEDER — BRUG DETTE FORMAT SÅ MEGET SOM MULIGT
+Når du stiller spørgsmål som kunden kan svare ja/nej på, eller foreslår tilvalg, SKAL du bruge klikbart format:
 
 [VALG_START]
-{"items":["Fadølsanlæg","Dansegulv","Opstilling og nedtagning"]}
+{"items":["Ja, lever venligst","Nej, vi afhenter selv"]}
 [VALG_SLUT]
 
-Brug dette format når du foreslår merydelser, spørger om opstilling, levering, dansegulv, scene, bar osv.
-Skriv en kort sætning INDEN blokken som forklarer hvad kunden skal tage stilling til.
-Eksempel: "Ønsker I nogle af disse tilvalg?" efterfulgt af [VALG_START]...[VALG_SLUT].
-Brug KUN formatet til konkrete ja/nej-valg — ikke til åbne spørgsmål om fx dato eller antal gæster.
+Brug formatet til ALLE ja/nej-spørgsmål og tilvalg — fx: levering/afhentning, opstilling, dansegulv, scene, stoltype osv.
+Skriv én kort sætning inden blokken. Brug IKKE formatet til åbne spørgsmål (dato, antal gæster, adresse).
 
 ## PLADSBEHOV PR. ELEMENT (brug dette til at beregne teltareal)
 
@@ -1558,16 +1619,23 @@ Når en kunde spørger om et produkt er ledigt en bestemt dato, skal du ALTID sv
 
 Du må ALDRIG sige: "det kan jeg ikke svare på", "jeg har ikke adgang til at se ledighed", "jeg kan ikke tjekke om det er ledigt" eller lignende. Det er FORKERT og frustrerende for kunden. Din opgave er at lave tilbuddet — systemet klarer resten.
 
-## MERYDELSER — FORESLÅ PROAKTIVT NÅR DET ER RELEVANT
-Foreslå disse produkter når konteksten passer — men pres ikke:
-- **Fadølsanlæg** → ved fest med bar, voksne selskaber, firmafest, bryllup
-- **Barvogn** → ved byfester, større firmafester — vi har en flot barvogn som er ideel
-- **Funfood-maskiner** (popcorn, slushice m.fl.) → ved børneselskaber, sommerfester, festivaler — disse produkter findes på hjemmesiden og skal tilbydes med pris fra prislisten
+**Når systemet melder at et produkt IKKE er ledigt:**
+- Informér kunden kortfattet om at produktet ikke er ledigt på den ønskede dato
+- Bed kunden vælge en ny dato
+- Du må ALDRIG selv vælge en anden dato eller præsentere et nyt tilbud med en ændret dato
+- Vent på at kunden selv angiver en ny dato
+
+## MERSALG — MEGET TILBAGEHOLDENDE
+Foreslå KUN ekstra produkter hvis kunden selv bringer emnet op, eller det er åbenlyst nødvendigt (fx stole til et telt). Pres IKKE mersalg. Ét enkelt forslag pr. samtale er nok — og kun hvis det er oplagt relevant:
+- **Fadølsanlæg / mobilbar / rullebar** → ved fest med bar, voksne selskaber, firmafest, bryllup. Dette er normale lejeprodukter fra prislisten — IKKE det samme som barvognen.
+- **Barvogn** (særprodukt — IKKE en mobilbar eller rullebar) → En stor trailer hvor hele den ene side åbnes op. Indeholder: fadølsanlæg, sodavandsanlæg, kølere, vask med koldt og varmt vand, lynopvasker og kaffeanlæg. Bruges primært til større fester, byfester og all-inclusive drinks-arrangementer. Barvognen kræver dialog med kunden for at afklare, hvad der passer bedst til deres arrangement. Henvis altid til kontakt: tlf. 72 40 67 10 eller kontakt@lejpartytelt.dk for barvognspakke.
+- **Funfood-maskiner** (popcorn, slushice, candyfloss m.fl.) → hjælp kunden med at vælge den rigtige maskine og tilbehør. Foreslå KUN relaterede produkter (fx kopper til slushice, popcorn-poser). Foreslå ALDRIG telte, stole, borde, dansegulv eller andet urelateret udstyr — det hænger ikke sammen med funfood-forespørgsler.
 - **Kopper til slush ice** hedder "Plastikkrus 0,3 liter inkl. opvask efter brug" — IKKE "bæger til softice"
 - **Opstilling af maskiner** → Softice-, slush ice- og popcornmaskiner samt fadølsanlæg opstilles af kunden selv ud fra medfølgende skriftlig vejledning eller mundtlig instruktion ved levering. Fotoboksen opstilles ALTID af Lejpartytelt.dk.
 - **Betjening af maskiner** → Spørg ALDRIG om hvem der skal betjene maskiner, fadølsanlæg eller andet udstyr — det er kundens eget ansvar og er irrelevant for tilbuddet. Undtagelse: hoppeborge skal have opsyn af en person på minimum 16 år — dette skal nævnes når kunden bestiller hoppeborg.
 - **Opvask på service** → Alle service-produkter (kopper, tallerkner, glas, bestik) inkluderer ALTID tvungen opvask fra Lejpartytelt.dk — det er inkluderet i prisen. Kunden skal blot returnere det i bakkerne som ved modtagelse. Tallerkner og bestik skal skylles af for madrester — resten klarer Lejpartytelt.
-- **Tvungen levering** → Softice-maskiner og køleskabe SKAL leveres og afhentes af Lejpartytelt.dk — kunden kan ikke selv transportere dem. Leveringspris tilføjes altid til tilbuddet for disse produkter.
+- **UFRAVIGELIG leveringsregel** → Softice-maskiner, køleskabe og telte KAN KUN LEVERES af Lejpartytelt.dk. Kunden kan under ingen omstændigheder selv afhente disse. Oplys kunden om dette hvis de spørger om afhentning. Leveringspris tilføjes altid til tilbuddet. Postnr. 6700–6715 = 250 kr inkl. moms; andre postnumre aftales særskilt.
+- **Afhentning på lager** → Pavilloner og øvrige produkter KAN afhentes på Håndværkervej 20, Esbjerg. Spørg om kunden foretrækker levering eller afhentning for disse produkter.
 - **Telte og opstilling** → Lejpartytelt.dk er ALTID med ved opsætning og nedtagning af telte. Kunden kan dog vælge at medbringe egne hjælpere, hvilket kan spare 500–750 kr afhængigt af teltets størrelse. Spørg om kunden ønsker at spare ved at stille med hjælpere.
 - **All-inclusive barløsning** → ikke tilgængelig online, direkter kunden:
   *"For en komplet all-inclusive barløsning bedes du kontakte os direkte: tlf. 72 40 67 10 eller kontakt@lejpartytelt.dk"*
@@ -1578,34 +1646,52 @@ Foreslå disse produkter når konteksten passer — men pres ikke:
 - Stol, polstret sort ↔ Stol, hvid m. sædehynde
 - Stol, hvid plastik → Stol, hvid m. sædehynde (lidt mere komfort)
 
-## VIS PRODUKTBILLEDER — VIGTIGT
-Når du nævner, anbefaler eller diskuterer specifikke produkter, skal du ALTID afslutte dit svar med:
+## VIS PRODUKTBILLEDER — ABSOLUT PÅKRÆVET
+Hver gang du nævner ETblot ét konkret produkt i dit svar, SKAL du afslutte svaret med:
 
 [BILLEDER_START]
 {"products":["Produktnavn 1","Produktnavn 2"]}
 [BILLEDER_SLUT]
 
-Eksempler på hvornår du bruger det:
-- Kunden spørger om stoletyper → vis de relevante stoletyper
-- Du anbefaler et telt → vis teltet
-- Du nævner gulv, barvogn, fadølsanlæg → vis dem
-- Du sammenligner produkter → vis dem alle
-- Kunden spørger om tilgængelighed på et produkt → vis produktet
+Dette er IKKE valgfrit. Det gælder ALTID — uanset om du anbefaler, nævner, sammenligner eller diskuterer et produkt. Hvis du glemmer det, er svaret fejlagtigt.
 
-Brug de præcise produktnavne fra prislisten. Billederne vises automatisk i produktpanelet som et slideshow.
+Eksempler:
+- Nævner et telt → vis teltet
+- Nævner stole → vis stolene
+- Nævner fadølsanlæg, gulv, barvogn → vis dem alle
+- Kunden spørger om tilgængelighed → vis produktet
+- Sammenligner to produkter → vis begge
+
+Brug de præcise produktnavne fra prislisten. Billederne vises automatisk i produktpanelet.
 
 ## SOFTICE
-Til softice skal der bruges to ting: **softice-maskinen** (én maskine, altid den samme) + **softice-mix** (to varianter at vælge imellem):
-- **Kastberg softice mix** — brug det præcise produktnavn fra prislisten
-- **Arla Pro softice mix** — brug det præcise produktnavn fra prislisten
+Til softice skal der bruges to ting: **softice-maskinen** (én maskine, altid den samme) + **softice-mix** (to varianter):
 
-Kunden skal altså booke både maskinen og et mix. Når en kunde spørger om softice:
-1. Forklar at prisen inkluderer maskinen, og at de skal vælge mellem to typer mix — oplysninger om smag/indhold fremgår af produktsiderne
-2. Vis begge mix-produkter med [BILLEDER_START]
-3. Lad kunden vælge mix med [VALG_START]
-4. Inkludér både maskine og det valgte mix i tilbuddet
+### Kastberg softice mix
+- Leveres på frost og optøs ved udlevering — kan **ikke tages retur**
+- 5 liters dunk → ca. 20–25 portioner (1 liter ≈ 4–5 portioner)
+- Hjælp kunden med at beregne mængde ud fra antal gæster
 
-Eksempel:
+### Arla Pro softice mix
+- 2 liters kartoner → ca. 8–10 portioner pr. karton
+- **Ubrudte kartoner tages retur til fuldt beløb**
+- Hjælp kunden med at beregne antal kartoner ud fra antal gæster
+
+### Mængdeberegning
+Beregn altid 1 portion pr. gæst (medmindre kunden oplyser andet).
+- 1 liter mix ≈ 4–5 portioner → brug 4,5 som gennemsnit
+- Kastberg: antal gæster ÷ 4,5 ÷ 5 liter = antal dunke (rund op)
+  Eksempel: 50 gæster → 50 ÷ 4,5 = 11,1 liter → 3 dunke à 5 liter
+- Arla Pro: antal gæster ÷ 4,5 ÷ 2 liter = antal kartoner (rund op)
+  Eksempel: 50 gæster → 50 ÷ 4,5 = 11,1 liter → 6 kartoner à 2 liter
+Nævn altid at ubrugte Arla Pro kartoner kan returneres, mens Kastberg ikke kan.
+
+### Flow når kunden spørger om softice
+1. Spørg om antal gæster (bruges til mængdeberegning)
+2. Vis begge mix og forklar forskellen kort
+3. Lad kunden vælge med [VALG_START]
+4. Beregn anbefalet mængde og inkludér maskine + mix i tilbuddet
+
 [BILLEDER_START]
 {"products":["Kastberg softice mix","Arla Pro softice mix"]}
 [BILLEDER_SLUT]
@@ -1616,7 +1702,7 @@ Hvilket mix ønsker I?
 {"items":["Kastberg softice mix","Arla Pro softice mix"]}
 [VALG_SLUT]
 
-Brug de præcise produktnavne fra prislisten. Billederne vises automatisk i produktpanelet som et slideshow.
+Brug de præcise produktnavne fra prislisten.
 
 ## TILBUD-FORMAT
 Når du har nok information (inkl. dato) til at præsentere et konkret tilbud, afslut dit svar med denne blok (INGEN linjeskift inde i JSON):
@@ -1843,40 +1929,70 @@ PROMPT;
         $token = $this->get_rentman_token();
         if ( ! $token ) return [ 'error' => 'Ingen Rentman API-token konfigureret.' ];
 
-        // Byg query for hvert item
-        $equipment_params = '';
+        $api_headers = [
+            'Authorization' => 'Bearer ' . $token,
+            'X-Api-Version' => '3',
+            'Accept'        => 'application/json',
+        ];
+
+        // For hvert produkt: hent bookinger via projectequipment og tjek dato-overlap
+        $result = [];
         foreach ( $items as $item ) {
-            if ( ! empty( $item['rentman_id'] ) ) {
-                $equipment_params .= '&equipment[]=' . rawurlencode( $item['rentman_id'] );
+            $rentman_id = (string) ( $item['rentman_id'] ?? '' );
+            if ( ! $rentman_id ) continue;
+
+            $needed_qty  = (int) ( $item['qty'] ?? 1 );
+            $overlap_qty = 0; // antal enheder der er booket i perioden
+
+            // Paginer gennem alle projectequipment-poster for dette udstyr
+            $page_url = 'https://api.rentman.net/projectequipment'
+                      . '?fields=id,equipment,quantity,planperiod_start,planperiod_end'
+                      . '&equipment=' . rawurlencode( '/equipment/' . $rentman_id )
+                      . '&limit=100';
+
+            $pages = 0;
+            while ( $page_url && $pages < 20 ) {
+                $response = wp_remote_get( $page_url, [ 'timeout' => 15, 'headers' => $api_headers ] );
+                if ( is_wp_error( $response ) ) break;
+                $code = wp_remote_retrieve_response_code( $response );
+                if ( $code !== 200 ) break;
+
+                $body = json_decode( wp_remote_retrieve_body( $response ), true );
+                foreach ( $body['data'] ?? [] as $booking ) {
+                    $b_start = $booking['planperiod_start'] ?? '';
+                    $b_end   = $booking['planperiod_end']   ?? '';
+                    if ( ! $b_start || ! $b_end ) continue;
+
+                    // Overlap: booking starter før vores slutdato OG slutter efter vores startdato
+                    if ( $b_start < $end_date . 'T23:59:59' && $b_end > $start_date . 'T00:00:00' ) {
+                        $overlap_qty += max( 1, (int) ( $booking['quantity'] ?? 1 ) );
+                    }
+                }
+                $page_url = $body['next_page_url'] ?? null;
+                $pages++;
             }
+
+            // Hent total lager for udstyret (antal enheder i alt)
+            $stock_resp  = wp_remote_get(
+                'https://api.rentman.net/equipment/' . $rentman_id . '?fields=id,quantity_total,stock_management',
+                [ 'timeout' => 10, 'headers' => $api_headers ]
+            );
+            $stock_data  = [];
+            if ( ! is_wp_error( $stock_resp ) && wp_remote_retrieve_response_code( $stock_resp ) === 200 ) {
+                $stock_body = json_decode( wp_remote_retrieve_body( $stock_resp ), true );
+                $stock_data = $stock_body['data'] ?? $stock_body;
+            }
+            $total_qty     = max( 1, (int) ( $stock_data['quantity_total'] ?? 1 ) );
+            $available_qty = max( 0, $total_qty - $overlap_qty );
+
+            $result[] = [
+                'id'                => $rentman_id,
+                'equipment'         => '/equipment/' . $rentman_id,
+                'availableQuantity' => $available_qty,
+            ];
         }
 
-        if ( ! $equipment_params ) return [ 'error' => 'Ingen Rentman-IDs fundet for de valgte produkter.' ];
-
-        $url = 'https://api.rentman.net/availability?from=' . rawurlencode( $start_date )
-             . '&till=' . rawurlencode( $end_date ) . $equipment_params;
-
-        $response = wp_remote_get( $url, [
-            'timeout' => 15,
-            'headers' => [
-                'Authorization'  => 'Bearer ' . $token,
-                'X-Api-Version'  => '3',
-                'Accept'         => 'application/json',
-            ],
-        ] );
-
-        if ( is_wp_error( $response ) ) {
-            return [ 'error' => $response->get_error_message() ];
-        }
-
-        $code = wp_remote_retrieve_response_code( $response );
-        $body = json_decode( wp_remote_retrieve_body( $response ), true );
-
-        if ( $code !== 200 ) {
-            return [ 'error' => 'Rentman API fejl (' . $code . ')' ];
-        }
-
-        return $body; // Array med tilgængeligheds-data
+        return [ 'data' => $result ];
     }
 
     private function get_live_price_table() {

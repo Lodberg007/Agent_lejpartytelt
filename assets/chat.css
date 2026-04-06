@@ -399,7 +399,7 @@
 .lpt-slide-img-wrap {
     position: relative;
     width: 100%;
-    aspect-ratio: 4/3;
+    height: 340px;
     background: #fff;
     border-radius: 8px;
     overflow: hidden;
@@ -412,11 +412,9 @@
 .lpt-slide-img {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center;
-    padding: 8px;
     transition: opacity 0.4s ease;
-    box-sizing: border-box;
 }
 .lpt-slide-no-img {
     font-size: 2.5rem;
@@ -532,6 +530,6 @@
     .lpt-msg            { max-width: 95%; }
     .lpt-offer-total    { flex-direction: column; align-items: flex-start; gap: 4px; }
 
-    /* Produktpanel: kompakt vandret slideshow på mobil */
-    .lpt-slide-img-wrap { aspect-ratio: 16/9; }
+    /* Produktpanel: kompakt på mobil */
+    .lpt-slide-img-wrap { height: 220px; }
 }
