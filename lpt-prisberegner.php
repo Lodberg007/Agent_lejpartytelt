@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.11.4
+ * Version:     1.11.5
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -895,14 +895,9 @@ class LPT_Prisberegner {
         // Gem datoer og opsætningsønsker i WooCommerce sessionen
         if ( WC()->session ) {
             if ( $start_date ) {
-                // Gem i flere formater da Rentman-plugins bruger forskellige nøgler
-                // Format YYYY-MM-DD → DD-MM-YYYY (som Rentman-pluginnet viser)
-                $from_display = implode( '-', array_reverse( explode( '-', $start_date ) ) );
-                $to_display   = implode( '-', array_reverse( explode( '-', $end_date ?: $start_date ) ) );
-                WC()->session->set( 'lpt_rental_from', $start_date );
-                WC()->session->set( 'lpt_rental_to',   $end_date ?: $start_date );
-                WC()->session->set( 'lpt_rental_from_display', $from_display );
-                WC()->session->set( 'lpt_rental_to_display',   $to_display );
+                // input[type="date"] kræver YYYY-MM-DD format
+                WC()->session->set( 'lpt_rental_from_display', $start_date );
+                WC()->session->set( 'lpt_rental_to_display',   $end_date ?: $start_date );
             }
             if ( $setup_notes ) {
                 WC()->session->set( 'lpt_setup_notes', $setup_notes );
