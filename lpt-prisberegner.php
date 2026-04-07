@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.12.6
+ * Version:     1.12.7
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -652,15 +652,23 @@ class LPT_Prisberegner {
 
         require_once ABSPATH . 'wp-admin/includes/file.php';
         require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 
         // Download ZIP til temp-fil
-        $tmp_file = download_url( $url, 60 );
+        $tmp_file = download_url( $url, 90 );
         if ( is_wp_error( $tmp_file ) ) {
             wp_send_json_error( [ 'message' => 'Download fejlede: ' . $tmp_file->get_error_message() ] );
+            return;
         }
 
-        // Klargør WP_Filesystem
-        WP_Filesystem();
+        // Klargør WP_Filesystem (tving 'direct' — undgå FTP-prompt)
+        add_filter( 'filesystem_method', function() { return 'direct'; }, PHP_INT_MAX );
+        $creds = request_filesystem_credentials( admin_url() );
+        if ( ! WP_Filesystem( $creds ) ) {
+            @unlink( $tmp_file );
+            wp_send_json_error( [ 'message' => 'WP_Filesystem kunne ikke initialiseres (tjek filrettigheder på serveren).' ] );
+            return;
+        }
         global $wp_filesystem;
 
         // Unzip til temp-mappe
@@ -670,6 +678,7 @@ class LPT_Prisberegner {
 
         if ( is_wp_error( $unzip ) ) {
             wp_send_json_error( [ 'message' => 'Unzip fejlede: ' . $unzip->get_error_message() ] );
+            return;
         }
 
         $plugin_slug = 'lpt-prisberegner';
@@ -679,15 +688,27 @@ class LPT_Prisberegner {
         if ( ! is_dir( $src ) ) {
             // Forsøg at finde plugin-mappen i temp-dir
             $subdirs = glob( trailingslashit( $tmp_dir ) . '*', GLOB_ONLYDIR );
-            $src     = ! empty( $subdirs ) ? trailingslashit( $subdirs[0] ) : $src;
+            if ( ! empty( $subdirs ) ) {
+                $src = trailingslashit( $subdirs[0] );
+            } else {
+                $wp_filesystem->delete( $tmp_dir, true );
+                wp_send_json_error( [ 'message' => 'Kunne ikke finde plugin-mappen i ZIP-filen. Kontrollér ZIP-strukturen.' ] );
+                return;
+            }
         }
 
         // Slet gammel mappe og kopier ny
         $wp_filesystem->delete( $dest, true );
-        copy_dir( $src, $dest );
+        $copy = copy_dir( $src, $dest );
 
         // Ryd temp og caches
         $wp_filesystem->delete( $tmp_dir, true );
+
+        if ( is_wp_error( $copy ) ) {
+            wp_send_json_error( [ 'message' => 'Kopiering fejlede: ' . $copy->get_error_message() ] );
+            return;
+        }
+
         $this->clear_price_cache();
         wp_clean_plugins_cache( true );
 
@@ -1228,14 +1249,15 @@ class LPT_Prisberegner {
                     post('lpt_plugin_update', function(res){
                         $update.disabled = false;
                         $check.disabled  = false;
-                        if (res.success) {
-                            $status.innerHTML = '✅ ' + res.data.message;
+                        if (res && res.success) {
+                            $status.innerHTML = '✅ ' + (res.data && res.data.message ? res.data.message : 'Opdateret!');
                             $log.style.display = 'none';
                             setTimeout(function(){ location.reload(); }, 2000);
                         } else {
+                            var msg = (res && res.data && res.data.message) ? res.data.message : JSON.stringify(res);
                             $status.innerHTML = '❌ Fejl';
                             $log.style.display = 'block';
-                            $log.textContent = res.data.message || 'Ukendt fejl.';
+                            $log.textContent = msg || 'Ukendt fejl — tjek PHP error log.';
                         }
                     });
                 });
