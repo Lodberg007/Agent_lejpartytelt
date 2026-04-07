@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.11.7
+ * Version:     1.11.8
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -893,20 +893,7 @@ class LPT_Prisberegner {
             }
         }
 
-        // Tilføj levering som separat produkt hvis konfigureret
-        if ( $delivery > 0 ) {
-            $delivery_product_id = (int) get_option( 'lpt_delivery_product_id', 0 );
-            if ( $delivery_product_id ) {
-                WC()->cart->add_to_cart( $delivery_product_id, 1, 0, [], [
-                    'lpt_unit_price' => $delivery,
-                    'lpt_multiplier' => 1.0,
-                    'lpt_days'       => 1,
-                    'lpt_start_date' => $start_date,
-                    'lpt_end_date'   => $end_date,
-                    'unique_key'     => 'delivery_' . $start_date,
-                ] );
-            }
-        }
+        // Levering tilføjes IKKE automatisk — kunden vælger selv under kurven (forsendelsesmetode)
 
         // Gem datoer og opsætningsønsker i WooCommerce sessionen
         if ( WC()->session ) {
@@ -1553,8 +1540,7 @@ Hvert produkt har sin egen faktorgruppe — brug den korrekte faktor for HVERT p
 {$factor_prompt}
 {$product_factors}
 ### Øvrige regler
-- **Postnummer 6700–6715:** Levering og afhentning 250 kr inkl. moms
-- Andre postnumre: aftales særskilt — du kan ikke oplyse en pris, men sig at vi kontakter kunden med leveringspris
+- **Levering vælges i kurven** — kunden vælger selv forsendelsesmetode under kurven (levering eller afhentning). Oplys priser når kunden spørger: postnr. 6700–6715 = 250 kr inkl. moms, andre postnumre aftales særskilt. Når tilbuddet lægges i kurven, skal kunden selv vælge forsendelsesmetode.
 - Ingen depositum. Vi sender lejekontrakt efter booking, som kunden skal godkende inden aftalen er bindende.
 
 ## AKTUELLE PRISER FRA HJEMMESIDEN (pr. dag inkl. moms)
@@ -1570,7 +1556,7 @@ Når en kunde spørger om telt til X personer, stil uddybende spørgsmål:
 5. **Scene/DJ** — musikanlæg, DJ-bord eller scene?
 6. **Opstilling** — ønskes hjælp til opstilling og nedtagning?
 7. **Levering eller afhentning** — følg disse regler UFRAVIGELIGT:
-   - **Softice-maskiner, køleskabe og telte: KAN KUN LEVERES** — afhentning er absolut ikke muligt. Leveringspris tilføjes altid automatisk til tilbuddet.
+   - **Softice-maskiner, køleskabe og telte: KAN KUN LEVERES** — afhentning er absolut ikke muligt. Kunden skal vælge levering i kurven.
    - **Pavilloner og øvrige produkter: KAN afhentes** på Håndværkervej 20, Esbjerg — spørg om kunden foretrækker levering eller afhentning
    - Spørg KUN om postnummer hvis kunden ønsker/skal have levering
 
@@ -1657,7 +1643,7 @@ Foreslå KUN ekstra produkter hvis kunden selv bringer emnet op, eller det er å
 - **Opstilling af maskiner** → Softice-, slush ice- og popcornmaskiner samt fadølsanlæg opstilles af kunden selv ud fra medfølgende skriftlig vejledning eller mundtlig instruktion ved levering. Fotoboksen opstilles ALTID af Lejpartytelt.dk.
 - **Betjening af maskiner** → Spørg ALDRIG om hvem der skal betjene maskiner, fadølsanlæg eller andet udstyr — det er kundens eget ansvar og er irrelevant for tilbuddet. Undtagelse: hoppeborge skal have opsyn af en person på minimum 16 år — dette skal nævnes når kunden bestiller hoppeborg.
 - **Opvask på service** → Alle service-produkter (kopper, tallerkner, glas, bestik) inkluderer ALTID tvungen opvask fra Lejpartytelt.dk — det er inkluderet i prisen. Kunden skal blot returnere det i bakkerne som ved modtagelse. Tallerkner og bestik skal skylles af for madrester — resten klarer Lejpartytelt.
-- **UFRAVIGELIG leveringsregel** → Softice-maskiner, køleskabe og telte KAN KUN LEVERES af Lejpartytelt.dk. Kunden kan under ingen omstændigheder selv afhente disse. Oplys kunden om dette hvis de spørger om afhentning. Leveringspris tilføjes altid til tilbuddet. Postnr. 6700–6715 = 250 kr inkl. moms; andre postnumre aftales særskilt.
+- **UFRAVIGELIG leveringsregel** → Softice-maskiner, køleskabe og telte KAN KUN LEVERES af Lejpartytelt.dk — kunden kan ikke selv afhente disse. Oplys kunden om dette. Kunden vælger forsendelse i kurven. Postnr. 6700–6715 = 250 kr inkl. moms; andre postnumre aftales særskilt.
 - **Afhentning på lager** → Pavilloner og øvrige produkter KAN afhentes på Håndværkervej 20, Esbjerg. Spørg om kunden foretrækker levering eller afhentning for disse produkter.
 - **Telte og opstilling** → Lejpartytelt.dk er ALTID med ved opsætning og nedtagning af telte. Kunden kan dog vælge at medbringe egne hjælpere, hvilket kan spare 500–750 kr afhængigt af teltets størrelse. Spørg om kunden ønsker at spare ved at stille med hjælpere.
 - **All-inclusive barløsning** → ikke tilgængelig online, direkter kunden:
@@ -1731,7 +1717,7 @@ Brug de præcise produktnavne fra prislisten.
 Når du har nok information (inkl. dato) til at præsentere et konkret tilbud, afslut dit svar med denne blok (INGEN linjeskift inde i JSON):
 
 [TILBUD_START]
-{"tent":"Telt 6×9m, hvid","days":2,"multiplier":1.4,"start_date":"2025-06-21","end_date":"2025-06-22","lines":[{"name":"Telt 6×9m, hvid","qty":1,"unitPrice":2400,"multiplier":1.0,"lineTotal":2400},{"name":"Stol, hvid plastik","qty":50,"unitPrice":7.20,"multiplier":1.4,"lineTotal":504},{"name":"Barvogn","qty":1,"unitPrice":800,"multiplier":1.5,"lineTotal":1200}],"delivery":250,"total":4354,"summary":"Telt + 50 stole + barvogn + levering, 2 dage","setup_notes":""}
+{"tent":"Telt 6×9m, hvid","days":2,"multiplier":1.4,"start_date":"2025-06-21","end_date":"2025-06-22","lines":[{"name":"Telt 6×9m, hvid","qty":1,"unitPrice":2400,"multiplier":1.0,"lineTotal":2400},{"name":"Stol, hvid plastik","qty":50,"unitPrice":7.20,"multiplier":1.4,"lineTotal":504},{"name":"Barvogn","qty":1,"unitPrice":800,"multiplier":1.5,"lineTotal":1200}],"delivery":0,"total":4104,"summary":"Telt + 50 stole + barvogn, 2 dage","setup_notes":""}
 [TILBUD_SLUT]
 
 Felter:
