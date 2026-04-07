@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.12.4
+ * Version:     1.12.5
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -42,7 +42,7 @@ class LPT_Prisberegner {
         add_filter( 'woocommerce_get_item_data',                 [ $this, 'wc_get_item_data' ],             10, 2 );
         add_action( 'woocommerce_before_calculate_totals',       [ $this, 'wc_set_cart_item_price' ],       10, 1 );
         add_action( 'woocommerce_checkout_create_order_line_item', [ $this, 'wc_save_order_meta' ],         10, 4 );
-        add_action( 'wp_footer',                                 [ $this, 'wc_inject_rental_dates_js' ] );
+        // Rental dates injiceres ikke længere — kunden udfylder selv i kurven
 
         // AJAX — kurv (gammel pakke-metode bevares for calculator-shortcode)
         add_action( 'wp_ajax_lpt_add_to_cart',        [ $this, 'ajax_add_to_cart' ] );
@@ -322,19 +322,7 @@ class LPT_Prisberegner {
     public function wc_get_item_data( $item_data, $cart_item ) {
         // Ny chat-agent metode: individuelle produkter med multiplikator
         if ( isset( $cart_item['lpt_unit_price'] ) ) {
-            $start = $cart_item['lpt_start_date'] ?? '';
-            $end   = $cart_item['lpt_end_date']   ?? '';
-            $days  = $cart_item['lpt_days'] ?? 1;
-            $mult  = $cart_item['lpt_multiplier'] ?? 1.0;
-
-            // Lejeperiode — vis altid
-            $period = $days . ' dag' . ( $days > 1 ? 'e' : '' );
-            if ( $start ) {
-                $period .= ' (' . $start;
-                if ( $end && $end !== $start ) $period .= ' – ' . $end;
-                $period .= ')';
-            }
-            $item_data[] = [ 'name' => 'Lejeperiode', 'value' => $period ];
+            // Ingen dato-info vises i kurven — kunden udfylder selv Rental period
             return $item_data;
         }
 
@@ -897,16 +885,9 @@ class LPT_Prisberegner {
 
         // Levering tilføjes IKKE automatisk — kunden vælger selv under kurven (forsendelsesmetode)
 
-        // Gem datoer og opsætningsønsker i WooCommerce sessionen
-        if ( WC()->session ) {
-            if ( $start_date ) {
-                // input[type="date"] kræver YYYY-MM-DD format
-                WC()->session->set( 'lpt_rental_from_display', $start_date );
-                WC()->session->set( 'lpt_rental_to_display',   $end_date ?: $start_date );
-            }
-            if ( $setup_notes ) {
-                WC()->session->set( 'lpt_setup_notes', $setup_notes );
-            }
+        // Datoer overføres IKKE til kurven — kunden udfylder selv Rental period i kurven
+        if ( WC()->session && $setup_notes ) {
+            WC()->session->set( 'lpt_setup_notes', $setup_notes );
         }
 
         if ( $added === 0 ) {
@@ -1534,10 +1515,10 @@ Dit mål er at hjælpe kunden med at sammensætte det BEDST passende tilbud — 
 **SVAR KORT OG PRÆCIST** — undgå lange forklaringer. Stil maks. 2 spørgsmål ad gangen. Brug korte sætninger. Ingen lange indledninger eller opsamlinger.
 
 ## TONE OG STEMNING
-Tilpas din tone til arrangementet:
-- **Fest, fødselsdage, bryllup, konfirmationer, firmafester, festivaler** → vær varm, begejstret og festlig i sproget 🎉. Brug gerne emojis som 🎂🥳🎊🍾🇩🇰 ved fødselsdage eller jubilæer. Vis at du glæder dig på kundens vegne.
-- **Mindehøjtideligheder, bisættelse eller begravelse** → vær rolig, respektfuld og diskret. Ingen emojis, ingen festlig tone.
-- **Neutral/ukendt formål** → hold en venlig og professionel tone.
+Tilpas din tone til hvad kunden skriver — spørg ALDRIG hvad arrangementet er for en type:
+- **Kunden nævner fest, fødselsdag, bryllup, konfirmation, firmafest, festival** → vær varm, begejstret og festlig 🎉
+- **Kunden nævner mindehøjtidelighed, bisættelse eller begravelse** → vær rolig, respektfuld og diskret. Ingen emojis.
+- **Kunden nævner ingenting specifikt** → hold en venlig og professionel tone — kom direkte til sagen.
 
 ## PRISREGLER
 
