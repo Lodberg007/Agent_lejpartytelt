@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.12.2
+ * Version:     1.12.3
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -655,6 +655,8 @@ class LPT_Prisberegner {
         check_ajax_referer( 'lpt_nonce', 'nonce' );
         if ( ! current_user_can( 'update_plugins' ) ) wp_die( 'Ikke tilladt' );
 
+        @set_time_limit( 120 ); // Tillad op til 2 min for download + unzip
+
         $url = esc_url_raw( get_option( 'lpt_update_url' ) ?: LPT_UPDATE_URL );
         if ( ! $url ) {
             wp_send_json_error( [ 'message' => 'Ingen update-URL konfigureret.' ] );
@@ -1200,7 +1202,22 @@ class LPT_Prisberegner {
                         method: 'POST',
                         headers: {'Content-Type':'application/x-www-form-urlencoded'},
                         body: 'action=' + action + '&nonce=' + nonce
-                    }).then(r=>r.json()).then(cb).catch(function(){ $status.textContent = 'Netværksfejl.'; });
+                    }).then(function(r) {
+                        if (!r.ok) throw new Error('HTTP ' + r.status);
+                        return r.text();
+                    }).then(function(txt) {
+                        try {
+                            cb(JSON.parse(txt));
+                        } catch(e) {
+                            $status.textContent = 'Svar kunne ikke læses. Prøv at genindlæse siden.';
+                            $log.style.display = 'block';
+                            $log.textContent = txt.substring(0, 500);
+                        }
+                    }).catch(function(err) {
+                        $status.textContent = 'Netværksfejl: ' + err.message;
+                        $log.style.display = 'block';
+                        $log.textContent = String(err);
+                    });
                 }
 
                 $check.addEventListener('click', function(){
