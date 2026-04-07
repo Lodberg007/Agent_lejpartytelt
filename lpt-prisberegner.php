@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.11.8
+ * Version:     1.11.9
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -1540,7 +1540,7 @@ Hvert produkt har sin egen faktorgruppe — brug den korrekte faktor for HVERT p
 {$factor_prompt}
 {$product_factors}
 ### Øvrige regler
-- **Levering vælges i kurven** — kunden vælger selv forsendelsesmetode under kurven (levering eller afhentning). Oplys priser når kunden spørger: postnr. 6700–6715 = 250 kr inkl. moms, andre postnumre aftales særskilt. Når tilbuddet lægges i kurven, skal kunden selv vælge forsendelsesmetode.
+- **Postnummer 6700–6715:** Levering og afhentning 250 kr inkl. moms — medtag denne pris i tilbuddet. Andre postnumre: aftales særskilt, skriv "Leveringspris aftales" i tilbuddet. Levering overføres IKKE til kurven — kunden vælger selv forsendelsesmetode i kurven.
 - Ingen depositum. Vi sender lejekontrakt efter booking, som kunden skal godkende inden aftalen er bindende.
 
 ## AKTUELLE PRISER FRA HJEMMESIDEN (pr. dag inkl. moms)
@@ -1717,7 +1717,7 @@ Brug de præcise produktnavne fra prislisten.
 Når du har nok information (inkl. dato) til at præsentere et konkret tilbud, afslut dit svar med denne blok (INGEN linjeskift inde i JSON):
 
 [TILBUD_START]
-{"tent":"Telt 6×9m, hvid","days":2,"multiplier":1.4,"start_date":"2025-06-21","end_date":"2025-06-22","lines":[{"name":"Telt 6×9m, hvid","qty":1,"unitPrice":2400,"multiplier":1.0,"lineTotal":2400},{"name":"Stol, hvid plastik","qty":50,"unitPrice":7.20,"multiplier":1.4,"lineTotal":504},{"name":"Barvogn","qty":1,"unitPrice":800,"multiplier":1.5,"lineTotal":1200}],"delivery":0,"total":4104,"summary":"Telt + 50 stole + barvogn, 2 dage","setup_notes":""}
+{"tent":"Telt 6×9m, hvid","days":2,"multiplier":1.4,"start_date":"2025-06-21","end_date":"2025-06-22","lines":[{"name":"Telt 6×9m, hvid","qty":1,"unitPrice":2400,"multiplier":1.0,"lineTotal":2400},{"name":"Stol, hvid plastik","qty":50,"unitPrice":7.20,"multiplier":1.4,"lineTotal":504},{"name":"Barvogn","qty":1,"unitPrice":800,"multiplier":1.5,"lineTotal":1200}],"delivery":250,"total":4354,"summary":"Telt + 50 stole + barvogn + levering, 2 dage","setup_notes":""}
 [TILBUD_SLUT]
 
 Felter:
