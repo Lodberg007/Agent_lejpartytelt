@@ -140,7 +140,6 @@
 
         const after = text.substring(cursor).trim();
         if (after) appendMessage('agent', after);
-        if (!anyTag && text.trim()) appendMessage('agent', text.trim());
     }
 
     /* ── VIS PRODUKTBILLEDER I VISUELT PANEL ── */
