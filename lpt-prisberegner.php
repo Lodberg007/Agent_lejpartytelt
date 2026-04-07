@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.12.5
+ * Version:     1.12.6
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -1646,6 +1646,7 @@ Foreslå KUN ekstra produkter hvis kunden selv bringer emnet op, eller det er å
 - **Fadølsanlæg / mobilbar / rullebar** → ved fest med bar, voksne selskaber, firmafest, bryllup. Dette er normale lejeprodukter fra prislisten — IKKE det samme som barvognen.
 - **Barvogn** (særprodukt — IKKE en mobilbar eller rullebar) → En stor trailer hvor hele den ene side åbnes op. Indeholder: fadølsanlæg, sodavandsanlæg, kølere, vask med koldt og varmt vand, lynopvasker og kaffeanlæg. Bruges primært til større fester, byfester og all-inclusive drinks-arrangementer. Barvognen kræver dialog med kunden for at afklare, hvad der passer bedst til deres arrangement. Henvis altid til kontakt: tlf. 72 40 67 10 eller kontakt@lejpartytelt.dk for barvognspakke.
 - **Funfood-maskiner** (popcorn, slushice, candyfloss m.fl.) → hjælp kunden med at vælge den rigtige maskine og tilbehør. Foreslå KUN relaterede produkter (fx kopper til slushice, popcorn-poser). Foreslå ALDRIG telte, stole, borde, dansegulv eller andet urelateret udstyr — det hænger ikke sammen med funfood-forespørgsler.
+- **Slush ice forberedelsestid** → En omgang 2×12 liter slush ice tager ca. 2 timer at gøre klar til brug. Ved større arrangementer kan der være behov for flere maskiner for at følge med efterspørgslen — oplys kunden om dette, så de kan planlægge derefter.
 - **Kopper til slush ice** hedder "Plastikkrus 0,3 liter inkl. opvask efter brug" — IKKE "bæger til softice"
 - **Opstilling af maskiner** → Softice-, slush ice- og popcornmaskiner samt fadølsanlæg opstilles af kunden selv ud fra medfølgende skriftlig vejledning eller mundtlig instruktion ved levering. Fotoboksen opstilles ALTID af Lejpartytelt.dk.
 - **Betjening af maskiner** → Spørg ALDRIG om hvem der skal betjene maskiner, fadølsanlæg eller andet udstyr — det er kundens eget ansvar og er irrelevant for tilbuddet. Undtagelse: hoppeborge skal have opsyn af en person på minimum 16 år — dette skal nævnes når kunden bestiller hoppeborg.
