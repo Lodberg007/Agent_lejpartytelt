@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.11.6
+ * Version:     1.11.7
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -1367,6 +1367,10 @@ class LPT_Prisberegner {
 
     /* ── SHORTCODE: CHAT ── */
     public function shortcode_chat( $atts ) {
+        // Undgå at rendere chat-shortcode to gange på samme side
+        static $rendered = false;
+        if ( $rendered ) return '';
+        $rendered = true;
         ob_start();
         ?>
         <div id="lpt-chat" class="lpt-chat-wrap">
