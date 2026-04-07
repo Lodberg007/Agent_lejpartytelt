@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.12.0
+ * Version:     1.12.1
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -108,8 +108,8 @@ class LPT_Prisberegner {
     public function output_color_vars() {
         $primary      = $this->get_color( 'lpt_color_primary',     '#ed254e' );
         $primary_dark = $this->get_color( 'lpt_color_primary_dark', '#c01b3e' );
-        $header_dark  = $this->get_color( 'lpt_color_header_dark',  '#1e3a5f' );
-        $header_vis   = $this->get_color( 'lpt_color_header_vis',   '#374151' );
+        $header_dark  = $this->get_color( 'lpt_color_header_dark',  '#ed254e' );
+        $header_vis   = $this->get_color( 'lpt_color_header_vis',   '#ed254e' );
         echo "<style>:root{" .
             "--lpt-primary:{$primary};" .
             "--lpt-primary-dark:{$primary_dark};" .
@@ -1139,8 +1139,8 @@ class LPT_Prisberegner {
                     $colors = [
                         'lpt_color_primary'      => [ 'Primærfarve (knapper, rammer, header)',   '#ed254e' ],
                         'lpt_color_primary_dark'  => [ 'Primærfarve mørk (hover-effekt)',          '#c01b3e' ],
-                        'lpt_color_header_dark'   => [ 'Tilbudspanel header-baggrund',             '#1e3a5f' ],
-                        'lpt_color_header_vis'    => [ 'Produktpanel header-baggrund',             '#374151' ],
+                        'lpt_color_header_dark'   => [ 'Tilbudspanel header-baggrund',             '#ed254e' ],
+                        'lpt_color_header_vis'    => [ 'Produktpanel header-baggrund',             '#ed254e' ],
                     ];
                     foreach ( $colors as $key => [$label, $default] ) :
                         $val = get_option( $key, $default );

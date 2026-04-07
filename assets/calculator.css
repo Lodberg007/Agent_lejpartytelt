@@ -154,7 +154,7 @@ label {
 .lpt-acc-group h3 {
     font-size: 1rem;
     font-weight: 600;
-    color: #374151;
+    color: #ed254e;
     border-bottom: 1px solid #e5e7eb;
     padding-bottom: 6px;
     margin: 0 0 10px;
@@ -231,7 +231,7 @@ label {
 .lpt-line-name   { flex: 2; font-weight: 500; }
 .lpt-line-detail { flex: 3; color: #6b7280; font-size: 0.85rem; }
 .lpt-line-total  { flex: 1; text-align: right; font-weight: 600; white-space: nowrap; }
-.lpt-line-delivery .lpt-line-name { color: #374151; }
+.lpt-line-delivery .lpt-line-name { color: #ed254e; }
 
 .lpt-total {
     background: #f8fafc;
@@ -254,7 +254,7 @@ label {
     border-left: 3px solid #d1d5db;
     padding: 10px 14px;
     font-size: 0.88rem;
-    color: #374151;
+    color: #ed254e;
     border-radius: 0 6px 6px 0;
     margin-bottom: 10px;
 }
@@ -296,7 +296,7 @@ label {
 .lpt-btn-secondary {
     padding: 11px 20px;
     background: #f3f4f6;
-    color: #374151;
+    color: #ed254e;
     border: 1px solid #d1d5db;
     border-radius: 6px;
     cursor: pointer;
