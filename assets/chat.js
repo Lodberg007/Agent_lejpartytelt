@@ -20,13 +20,19 @@
     }
 
     let history = [];
+    let sending = false; // Guard mod dobbeltkald
 
     /* ── INIT ── */
+    // Brug et globalt flag så init kun køres én gang selv hvis jQuery fires to gange
+    if (window._lptChatInitialized) return;
+    window._lptChatInitialized = true;
+
     $(function () {
         // Chat
         if ($('#lpt-chat').length) {
-            $('#lpt-chat-send').on('click', sendMessage);
-            $('#lpt-chat-input').on('keydown', function (e) {
+            // .off() sikrer at vi ikke binder click to gange
+            $('#lpt-chat-send').off('click').on('click', sendMessage);
+            $('#lpt-chat-input').off('keydown').on('keydown', function (e) {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     sendMessage();
@@ -36,14 +42,14 @@
 
         // Tilbudsoversigt lytter på event fra chatten
         if ($('#lpt-live-summary').length) {
-            $(document).on('lpt:offer', function (e, offer) {
+            $(document).off('lpt:offer.summary').on('lpt:offer.summary', function (e, offer) {
                 updateSummaryPanel(offer);
             });
         }
 
         // Produktbilleder lytter på event fra chatten
         if ($('#lpt-visual-panel').length) {
-            $(document).on('lpt:offer', function (e, offer) {
+            $(document).off('lpt:offer.visual').on('lpt:offer.visual', function (e, offer) {
                 updateVisualPanel(offer);
             });
         }
@@ -51,10 +57,12 @@
 
     /* ── SEND BESKED ── */
     function sendMessage() {
+        if (sending) return; // Forhindrer dobbeltkald
         const $input = $('#lpt-chat-input');
         const text   = $input.val().trim();
         if (!text) return;
 
+        sending = true;
         $input.val('').prop('disabled', true);
         $('#lpt-chat-send').prop('disabled', true);
 
@@ -81,6 +89,7 @@
             appendMessage('agent', 'Netværksfejl — prøv igen om lidt.');
         })
         .always(function () {
+            sending = false;
             $input.prop('disabled', false).focus();
             $('#lpt-chat-send').prop('disabled', false);
         });
