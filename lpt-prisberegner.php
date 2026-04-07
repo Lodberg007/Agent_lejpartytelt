@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.11.9
+ * Version:     1.12.0
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -1540,7 +1540,10 @@ Hvert produkt har sin egen faktorgruppe — brug den korrekte faktor for HVERT p
 {$factor_prompt}
 {$product_factors}
 ### Øvrige regler
-- **Postnummer 6700–6715:** Levering og afhentning 250 kr inkl. moms — medtag denne pris i tilbuddet. Andre postnumre: aftales særskilt, skriv "Leveringspris aftales" i tilbuddet. Levering overføres IKKE til kurven — kunden vælger selv forsendelsesmetode i kurven.
+- **Postnummer 6700–6715:** Levering og afhentning 250 kr inkl. moms — medtag i tilbuddet.
+- **Andre postnumre:** Oplys kunden at leveringsprisen beregnes automatisk når de indtaster deres postnummer i kurven.
+- Levering overføres IKKE til kurven — kunden vælger selv forsendelsesmetode i kurven.
+- **Vejled ALTID kunden** om at skrive i bemærkningsfeltet i kurven: hvornår de ønsker levering og hvornår vi skal afhente igen.
 - Ingen depositum. Vi sender lejekontrakt efter booking, som kunden skal godkende inden aftalen er bindende.
 
 ## AKTUELLE PRISER FRA HJEMMESIDEN (pr. dag inkl. moms)
@@ -1613,6 +1616,12 @@ Du SKAL have disse oplysninger fra kunden inden du præsenterer et endeligt tilb
 2. **Opstilling/nedtagning** — ønsker kunden hjælp hertil? Hvornår? Særlig adresse/adgangsforhold?
    (Opsætnings- og nedtagningsønsker skrives i ordrebemærkninger — spørg til det men lad kunden udfylde detaljer ved udtjekning)
 
+**VEJLEDNING TIL KUNDEN VED TILBUD MED TELT ELLER LEVERING:**
+Når tilbuddet præsenteres, skal du altid oplyse kunden om følgende:
+- Skriv ønsket leveringsdato og afhentningsdato i **bemærkningsfeltet i kurven**
+- Ved weekendarrangement: teltet opsættes normalt **torsdag** og nedtages **mandag** — alt bestilt udstyr leveres og afhentes samtidig
+- Leveringsprisen fremgår i kurven når de indtaster deres postnummer (6700–6715 = 250 kr)
+
 Stil gerne dato-spørgsmålet tidligt i samtalen — fx: "Hvornår skal I bruge teltet? Angiv gerne den konkrete dato."
 
 **VIGTIGT om datoer — ABSOLUT REGEL:**
@@ -1646,6 +1655,7 @@ Foreslå KUN ekstra produkter hvis kunden selv bringer emnet op, eller det er å
 - **UFRAVIGELIG leveringsregel** → Softice-maskiner, køleskabe og telte KAN KUN LEVERES af Lejpartytelt.dk — kunden kan ikke selv afhente disse. Oplys kunden om dette. Kunden vælger forsendelse i kurven. Postnr. 6700–6715 = 250 kr inkl. moms; andre postnumre aftales særskilt.
 - **Afhentning på lager** → Pavilloner og øvrige produkter KAN afhentes på Håndværkervej 20, Esbjerg. Spørg om kunden foretrækker levering eller afhentning for disse produkter.
 - **Telte og opstilling** → Lejpartytelt.dk er ALTID med ved opsætning og nedtagning af telte. Kunden kan dog vælge at medbringe egne hjælpere, hvilket kan spare 500–750 kr afhængigt af teltets størrelse. Spørg om kunden ønsker at spare ved at stille med hjælpere.
+- **Telttidsplan ved weekendarrangementer** → Teltet opsættes normalt om torsdagen og nedtages om mandagen. Alt udstyr bestilt sammen med teltet (stole, borde, gulv osv.) leveres og afhentes sammen med teltet. Vejled kunden om at skrive ønsket leveringsdag og afhentningsdag i bemærkningsfeltet i kurven.
 - **All-inclusive barløsning** → ikke tilgængelig online, direkter kunden:
   *"For en komplet all-inclusive barløsning bedes du kontakte os direkte: tlf. 72 40 67 10 eller kontakt@lejpartytelt.dk"*
 
