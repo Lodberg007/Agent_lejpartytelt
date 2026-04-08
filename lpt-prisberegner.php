@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.13.1
+ * Version:     1.13.2
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -814,82 +814,123 @@ class LPT_Prisberegner {
         check_ajax_referer( 'lpt_nonce', 'nonce' );
         if ( ! current_user_can( 'update_plugins' ) ) wp_die( 'Ikke tilladt' );
 
-        @set_time_limit( 120 ); // Tillad op til 2 min for download + unzip
+        @set_time_limit( 180 );
 
         $url = esc_url_raw( get_option( 'lpt_update_url' ) ?: LPT_UPDATE_URL );
         if ( ! $url ) {
             wp_send_json_error( [ 'message' => 'Ingen update-URL konfigureret.' ] );
+            return;
         }
 
         require_once ABSPATH . 'wp-admin/includes/file.php';
         require_once ABSPATH . 'wp-admin/includes/plugin.php';
-        require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 
-        // Download ZIP til temp-fil
-        $tmp_file = download_url( $url, 90 );
-        if ( is_wp_error( $tmp_file ) ) {
-            wp_send_json_error( [ 'message' => 'Download fejlede: ' . $tmp_file->get_error_message() ] );
+        // 1. Download ZIP med wp_remote_get (følger redirects fra GitHub)
+        $response = wp_remote_get( $url, [ 'timeout' => 90, 'redirection' => 5, 'stream' => false ] );
+        if ( is_wp_error( $response ) ) {
+            wp_send_json_error( [ 'message' => 'Download fejlede: ' . $response->get_error_message() ] );
+            return;
+        }
+        $code = wp_remote_retrieve_response_code( $response );
+        if ( $code !== 200 ) {
+            wp_send_json_error( [ 'message' => 'Download fejlede: HTTP ' . $code ] );
+            return;
+        }
+        $zip_data = wp_remote_retrieve_body( $response );
+        if ( ! $zip_data ) {
+            wp_send_json_error( [ 'message' => 'Download returnerede tom fil.' ] );
             return;
         }
 
-        // Klargør WP_Filesystem (tving 'direct' — undgå FTP-prompt)
-        add_filter( 'filesystem_method', function() { return 'direct'; }, PHP_INT_MAX );
-        $creds = request_filesystem_credentials( admin_url() );
-        if ( ! WP_Filesystem( $creds ) ) {
-            @unlink( $tmp_file );
-            wp_send_json_error( [ 'message' => 'WP_Filesystem kunne ikke initialiseres (tjek filrettigheder på serveren).' ] );
-            return;
-        }
-        global $wp_filesystem;
-
-        // Unzip til temp-mappe
-        $tmp_dir = trailingslashit( get_temp_dir() ) . 'lpt-update-' . time();
-        $unzip   = unzip_file( $tmp_file, $tmp_dir );
-        @unlink( $tmp_file );
-
-        if ( is_wp_error( $unzip ) ) {
-            wp_send_json_error( [ 'message' => 'Unzip fejlede: ' . $unzip->get_error_message() ] );
+        // 2. Gem ZIP til temp-fil med ren PHP
+        $tmp_zip = sys_get_temp_dir() . '/lpt-update-' . time() . '.zip';
+        if ( file_put_contents( $tmp_zip, $zip_data ) === false ) {
+            wp_send_json_error( [ 'message' => 'Kunne ikke gemme ZIP til temp-mappe: ' . sys_get_temp_dir() ] );
             return;
         }
 
+        // 3. Unzip med PHP ZipArchive (ingen WP_Filesystem)
+        if ( ! class_exists( 'ZipArchive' ) ) {
+            @unlink( $tmp_zip );
+            wp_send_json_error( [ 'message' => 'PHP ZipArchive-udvidelsen er ikke tilgængelig på serveren.' ] );
+            return;
+        }
+        $tmp_dir = sys_get_temp_dir() . '/lpt-update-dir-' . time();
+        @mkdir( $tmp_dir, 0755, true );
+
+        $zip = new ZipArchive();
+        $res = $zip->open( $tmp_zip );
+        if ( $res !== true ) {
+            @unlink( $tmp_zip );
+            wp_send_json_error( [ 'message' => 'Unzip fejlede (ZipArchive kode: ' . $res . ').' ] );
+            return;
+        }
+        $zip->extractTo( $tmp_dir );
+        $zip->close();
+        @unlink( $tmp_zip );
+
+        // 4. Find plugin-mappen i ZIP
         $plugin_slug = 'lpt-prisberegner';
-        $dest        = WP_PLUGIN_DIR . '/' . $plugin_slug . '/';
-        $src         = trailingslashit( $tmp_dir ) . $plugin_slug . '/';
-
+        $src = $tmp_dir . '/' . $plugin_slug . '/';
         if ( ! is_dir( $src ) ) {
-            // Forsøg at finde plugin-mappen i temp-dir
-            $subdirs = glob( trailingslashit( $tmp_dir ) . '*', GLOB_ONLYDIR );
+            $subdirs = glob( $tmp_dir . '/*', GLOB_ONLYDIR );
             if ( ! empty( $subdirs ) ) {
                 $src = trailingslashit( $subdirs[0] );
             } else {
-                $wp_filesystem->delete( $tmp_dir, true );
-                wp_send_json_error( [ 'message' => 'Kunne ikke finde plugin-mappen i ZIP-filen. Kontrollér ZIP-strukturen.' ] );
+                $this->rrmdir( $tmp_dir );
+                wp_send_json_error( [ 'message' => 'Kunne ikke finde plugin-mappen i ZIP. Indhold: ' . implode( ', ', glob( $tmp_dir . '/*' ) ?: [] ) ] );
                 return;
             }
         }
 
-        // Slet gammel mappe og kopier ny
-        $wp_filesystem->delete( $dest, true );
-        $copy = copy_dir( $src, $dest );
+        // 5. Kopier filer med ren PHP (ingen WP_Filesystem)
+        $dest = WP_PLUGIN_DIR . '/' . $plugin_slug . '/';
+        $this->rrmdir( $dest );
+        $copied = $this->rcopy( $src, $dest );
+        $this->rrmdir( $tmp_dir );
 
-        // Ryd temp og caches
-        $wp_filesystem->delete( $tmp_dir, true );
-
-        if ( is_wp_error( $copy ) ) {
-            wp_send_json_error( [ 'message' => 'Kopiering fejlede: ' . $copy->get_error_message() ] );
+        if ( ! $copied ) {
+            wp_send_json_error( [ 'message' => 'Kopiering af filer fejlede. Tjek at WordPress-mappen er skrivbar.' ] );
             return;
         }
 
+        // 6. Ryd caches og aktivér
         $this->clear_price_cache();
         wp_clean_plugins_cache( true );
-
-        // Sørg for pluginnet forbliver aktivt
         $plugin_file = $plugin_slug . '/' . $plugin_slug . '.php';
         if ( ! is_plugin_active( $plugin_file ) ) {
             activate_plugin( $plugin_file );
         }
 
         wp_send_json_success( [ 'message' => 'Plugin opdateret til nyeste version! Genindlæser siden...' ] );
+    }
+
+    // Rekursiv sletning af mappe med ren PHP
+    private function rrmdir( string $dir ): void {
+        if ( ! is_dir( $dir ) ) return;
+        foreach ( scandir( $dir ) as $item ) {
+            if ( $item === '.' || $item === '..' ) continue;
+            $path = $dir . '/' . $item;
+            is_dir( $path ) ? $this->rrmdir( $path ) : @unlink( $path );
+        }
+        @rmdir( $dir );
+    }
+
+    // Rekursiv kopiering af mappe med ren PHP
+    private function rcopy( string $src, string $dst ): bool {
+        if ( ! is_dir( $src ) ) return false;
+        if ( ! is_dir( $dst ) ) @mkdir( $dst, 0755, true );
+        foreach ( scandir( $src ) as $item ) {
+            if ( $item === '.' || $item === '..' ) continue;
+            $s = $src . $item;
+            $d = $dst . $item;
+            if ( is_dir( $s ) ) {
+                if ( ! $this->rcopy( $s . '/', $d . '/' ) ) return false;
+            } else {
+                if ( ! @copy( $s, $d ) ) return false;
+            }
+        }
+        return true;
     }
 
     // Henter Rentman equipment → faktorgruppe-ID mapping
