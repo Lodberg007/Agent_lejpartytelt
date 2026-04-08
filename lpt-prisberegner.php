@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.12.7
+ * Version:     1.12.8
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -1673,8 +1673,8 @@ Foreslå KUN ekstra produkter hvis kunden selv bringer emnet op, eller det er å
 - **Opstilling af maskiner** → Softice-, slush ice- og popcornmaskiner samt fadølsanlæg opstilles af kunden selv ud fra medfølgende skriftlig vejledning eller mundtlig instruktion ved levering. Fotoboksen opstilles ALTID af Lejpartytelt.dk.
 - **Betjening af maskiner** → Spørg ALDRIG om hvem der skal betjene maskiner, fadølsanlæg eller andet udstyr — det er kundens eget ansvar og er irrelevant for tilbuddet. Undtagelse: hoppeborge skal have opsyn af en person på minimum 16 år — dette skal nævnes når kunden bestiller hoppeborg.
 - **Opvask på service** → Alle service-produkter (kopper, tallerkner, glas, bestik) inkluderer ALTID tvungen opvask fra Lejpartytelt.dk — det er inkluderet i prisen. Kunden skal blot returnere det i bakkerne som ved modtagelse. Tallerkner og bestik skal skylles af for madrester — resten klarer Lejpartytelt.
-- **UFRAVIGELIG leveringsregel** → Softice-maskiner, køleskabe og telte KAN KUN LEVERES af Lejpartytelt.dk — kunden kan ikke selv afhente disse. Oplys kunden om dette. Kunden vælger forsendelse i kurven. Postnr. 6700–6715 = 250 kr inkl. moms; andre postnumre aftales særskilt.
-- **Afhentning på lager** → Pavilloner og øvrige produkter KAN afhentes på Håndværkervej 20, Esbjerg. Spørg om kunden foretrækker levering eller afhentning for disse produkter.
+- **UFRAVIGELIG leveringsregel** → Softice-maskiner, køleskabe og telte KAN KUN LEVERES af Lejpartytelt.dk — kunden kan IKKE selv afhente disse. Oplys kunden om dette. Kunden vælger forsendelse i kurven. Postnr. 6700–6715 = 250 kr inkl. moms; andre postnumre aftales særskilt.
+- **Afhentning på lager** → Slush ice-maskiner, pavilloner og øvrige produkter KAN afhentes på Håndværkervej 20, Esbjerg — eller leveres. Spørg om kunden foretrækker levering eller afhentning for disse produkter.
 - **Telte og opstilling** → Lejpartytelt.dk er ALTID med ved opsætning og nedtagning af telte. Kunden kan dog vælge at medbringe egne hjælpere, hvilket kan spare 500–750 kr afhængigt af teltets størrelse. Spørg om kunden ønsker at spare ved at stille med hjælpere.
 - **Telttidsplan ved weekendarrangementer** → Teltet opsættes normalt om torsdagen og nedtages om mandagen. Alt udstyr bestilt sammen med teltet (stole, borde, gulv osv.) leveres og afhentes sammen med teltet. Vejled kunden om at skrive ønsket leveringsdag og afhentningsdag i bemærkningsfeltet i kurven.
 - **All-inclusive barløsning** → ikke tilgængelig online, direkter kunden:
