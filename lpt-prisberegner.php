@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.12.9
+ * Version:     1.13.0
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -11,6 +11,24 @@
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 define( 'LPT_VERSION', get_file_data( __FILE__, [ 'Version' => 'Version' ] )['Version'] );
+
+/* ── Aktivering: opret chat-log tabel ── */
+register_activation_hook( __FILE__, function() {
+    global $wpdb;
+    $table = $wpdb->prefix . 'lpt_chat_sessions';
+    $charset = $wpdb->get_charset_collate();
+    $sql = "CREATE TABLE IF NOT EXISTS $table (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        session_id VARCHAR(64) NOT NULL,
+        started_at DATETIME NOT NULL,
+        messages LONGTEXT NOT NULL,
+        cart_added TINYINT(1) NOT NULL DEFAULT 0,
+        ip VARCHAR(45) DEFAULT NULL,
+        INDEX (started_at)
+    ) $charset;";
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta( $sql );
+} );
 define( 'LPT_UPDATE_URL', 'https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip' );
 define( 'LPT_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'LPT_URL',     plugin_dir_url( __FILE__ ) );
@@ -71,6 +89,11 @@ class LPT_Prisberegner {
         add_action( 'wp_ajax_lpt_chat_message',        [ $this, 'ajax_chat_message' ] );
         add_action( 'wp_ajax_nopriv_lpt_chat_message', [ $this, 'ajax_chat_message' ] );
 
+        // Admin AJAX — samtaler, test-chat, vidensbase
+        add_action( 'wp_ajax_lpt_admin_chat',            [ $this, 'ajax_admin_chat' ] );
+        add_action( 'wp_ajax_lpt_get_chat_logs',         [ $this, 'ajax_get_chat_logs' ] );
+        add_action( 'wp_ajax_lpt_refresh_knowledge',     [ $this, 'ajax_refresh_knowledge' ] );
+
         // Ryd pris-cache når et produkt opdateres
         add_action( 'woocommerce_update_product', [ $this, 'clear_price_cache' ] );
         add_action( 'woocommerce_new_product',    [ $this, 'clear_price_cache' ] );
@@ -97,6 +120,154 @@ class LPT_Prisberegner {
     private function get_rentman_token(): string {
         if ( defined( 'LPT_RENTMAN_TOKEN' ) && LPT_RENTMAN_TOKEN ) return LPT_RENTMAN_TOKEN;
         return (string) get_option( 'lpt_rentman_token', '' );
+    }
+
+    /* ── VIDENSBASE: hent produktbeskrivelser fra WooCommerce ── */
+    private function get_website_knowledge(): string {
+        $cached = get_transient( 'lpt_website_knowledge' );
+        if ( $cached !== false ) return (string) $cached;
+        return $this->refresh_website_knowledge();
+    }
+
+    private function refresh_website_knowledge(): string {
+        if ( ! function_exists( 'wc_get_products' ) ) return '';
+
+        $products = wc_get_products( [ 'limit' => -1, 'status' => 'publish' ] );
+        $by_cat   = [];
+
+        foreach ( $products as $product ) {
+            $cats = wp_get_post_terms( $product->get_id(), 'product_cat', [ 'fields' => 'names' ] );
+            // Spring over skjulte/interne kategorier
+            $cats = array_filter( (array) $cats, fn($c) => ! in_array( strtolower($c), [ 'ad hoc priser/projekter', 'skjulte ydelser', 'lovpligtig' ], true ) );
+            $cat  = ! empty( $cats ) ? reset( $cats ) : 'Øvrige';
+
+            $name  = $product->get_name();
+            $short = wp_strip_all_tags( $product->get_short_description() );
+            $long  = wp_strip_all_tags( $product->get_description() );
+            // Fjern Divi/page-builder shortcodes
+            $long  = preg_replace( '/\[[^\]]+\]/', '', $long );
+            $long  = preg_replace( '/\s{2,}/', ' ', $long );
+            $text  = trim( $short . ' ' . $long );
+
+            $line = $text ? "- **$name**: $text" : "- **$name**";
+            $by_cat[ $cat ][] = $line;
+        }
+
+        ksort( $by_cat );
+        $output = "## PRODUKTVIDEN FRA HJEMMESIDEN\n";
+        $output .= "Brug disse beskrivelser til at svare på spørgsmål om produkterne.\n\n";
+        foreach ( $by_cat as $cat => $lines ) {
+            $output .= "### $cat\n" . implode( "\n", $lines ) . "\n\n";
+        }
+
+        set_transient( 'lpt_website_knowledge', $output, 24 * HOUR_IN_SECONDS );
+        return $output;
+    }
+
+    /* ── CHAT-LOGNING ── */
+    private function log_chat_session( string $session_id, array $messages, bool $cart_added ): void {
+        global $wpdb;
+        $table = $wpdb->prefix . 'lpt_chat_sessions';
+        // Opret eller opdater session
+        $existing = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $table WHERE session_id = %s", $session_id ) );
+        if ( $existing ) {
+            $wpdb->update( $table, [
+                'messages'   => wp_json_encode( $messages, JSON_UNESCAPED_UNICODE ),
+                'cart_added' => $cart_added ? 1 : 0,
+            ], [ 'session_id' => $session_id ] );
+        } else {
+            $wpdb->insert( $table, [
+                'session_id' => $session_id,
+                'started_at' => current_time( 'mysql' ),
+                'messages'   => wp_json_encode( $messages, JSON_UNESCAPED_UNICODE ),
+                'cart_added' => $cart_added ? 1 : 0,
+                'ip'         => sanitize_text_field( $_SERVER['REMOTE_ADDR'] ?? '' ),
+            ] );
+        }
+    }
+
+    /* ── AJAX: admin test-chat ── */
+    public function ajax_admin_chat() {
+        check_ajax_referer( 'lpt_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Ikke tilladt' );
+
+        $api_key = $this->get_api_key();
+        if ( ! $api_key ) wp_send_json_error( [ 'message' => 'API-nøgle mangler.' ] );
+
+        $user_message = sanitize_textarea_field( wp_unslash( $_POST['message'] ?? '' ) );
+        if ( ! $user_message ) wp_send_json_error( [ 'message' => 'Tom besked.' ] );
+
+        $history_raw = wp_unslash( $_POST['history'] ?? '[]' );
+        $history     = json_decode( $history_raw, true );
+        if ( ! is_array( $history ) ) $history = [];
+        $history = array_map( fn($m) => [
+            'role'    => in_array( $m['role'] ?? '', [ 'user', 'assistant' ] ) ? $m['role'] : 'user',
+            'content' => sanitize_textarea_field( $m['content'] ?? '' ),
+        ], array_slice( $history, -20 ) );
+        $history[] = [ 'role' => 'user', 'content' => $user_message ];
+
+        $response = wp_remote_post( 'https://api.anthropic.com/v1/messages', [
+            'timeout' => 45,
+            'headers' => [
+                'Content-Type'      => 'application/json',
+                'x-api-key'         => $api_key,
+                'anthropic-version' => '2023-06-01',
+            ],
+            'body' => wp_json_encode( [
+                'model'      => 'claude-haiku-4-5-20251001',
+                'max_tokens' => 1500,
+                'system'     => $this->get_system_prompt(),
+                'messages'   => $history,
+            ] ),
+        ] );
+
+        if ( is_wp_error( $response ) ) wp_send_json_error( [ 'message' => $response->get_error_message() ] );
+        $body  = json_decode( wp_remote_retrieve_body( $response ), true );
+        $reply = $body['content'][0]['text'] ?? '';
+        $history[] = [ 'role' => 'assistant', 'content' => $reply ];
+        wp_send_json_success( [ 'message' => $reply, 'history' => $history ] );
+    }
+
+    /* ── AJAX: hent samtalelogger ── */
+    public function ajax_get_chat_logs() {
+        check_ajax_referer( 'lpt_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Ikke tilladt' );
+
+        global $wpdb;
+        $table = $wpdb->prefix . 'lpt_chat_sessions';
+
+        // Opret tabel hvis den ikke eksisterer endnu
+        $exists = $wpdb->get_var( "SHOW TABLES LIKE '$table'" );
+        if ( ! $exists ) {
+            $charset = $wpdb->get_charset_collate();
+            $sql = "CREATE TABLE IF NOT EXISTS $table (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                session_id VARCHAR(64) NOT NULL,
+                started_at DATETIME NOT NULL,
+                messages LONGTEXT NOT NULL,
+                cart_added TINYINT(1) NOT NULL DEFAULT 0,
+                ip VARCHAR(45) DEFAULT NULL,
+                INDEX (started_at)
+            ) $charset;";
+            require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+            dbDelta( $sql );
+        }
+
+        $rows = $wpdb->get_results( "SELECT * FROM $table ORDER BY started_at DESC LIMIT 20", ARRAY_A );
+        foreach ( $rows as &$row ) {
+            $row['messages'] = json_decode( $row['messages'], true );
+        }
+        wp_send_json_success( $rows );
+    }
+
+    /* ── AJAX: genopfrisk vidensbase ── */
+    public function ajax_refresh_knowledge() {
+        check_ajax_referer( 'lpt_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( 'Ikke tilladt' );
+        delete_transient( 'lpt_website_knowledge' );
+        $content = $this->refresh_website_knowledge();
+        $count   = substr_count( $content, "\n- **" );
+        wp_send_json_success( [ 'message' => "Vidensbase opdateret — $count produkter hentet.", 'content' => $content ] );
     }
 
     /* ── CSS-VARIABLER FRA INDSTILLINGER ── */
@@ -1028,9 +1199,168 @@ class LPT_Prisberegner {
     }
 
     public function settings_page() {
+        $tab = sanitize_key( $_GET['tab'] ?? 'indstillinger' );
+        $nonce = wp_create_nonce( 'lpt_nonce' );
         ?>
         <div class="wrap">
-            <h1>LPT Prisberegner — Indstillinger</h1>
+            <h1>LPT Prisberegner</h1>
+            <nav class="nav-tab-wrapper" style="margin-bottom:20px">
+                <?php foreach ( [ 'indstillinger' => '⚙️ Indstillinger', 'samtaler' => '💬 Samtaler', 'test' => '🤖 Test agent', 'vidensbase' => '📚 Vidensbase' ] as $t => $label ) : ?>
+                <a href="?page=lpt-prisberegner&tab=<?php echo $t; ?>" class="nav-tab <?php echo $tab === $t ? 'nav-tab-active' : ''; ?>"><?php echo $label; ?></a>
+                <?php endforeach; ?>
+            </nav>
+
+            <?php if ( $tab === 'samtaler' ) : ?>
+            <h2>Seneste 20 samtaler</h2>
+            <button id="lpt-load-logs" class="button button-primary">🔄 Hent samtaler</button>
+            <div id="lpt-logs-container" style="margin-top:16px"></div>
+            <script>
+            document.getElementById('lpt-load-logs').addEventListener('click', function(){
+                var btn = this;
+                btn.disabled = true; btn.textContent = 'Henter...';
+                fetch(ajaxurl, {
+                    method:'POST',
+                    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+                    body:'action=lpt_get_chat_logs&nonce=<?php echo $nonce; ?>'
+                }).then(r=>r.json()).then(function(res){
+                    btn.disabled = false; btn.textContent = '🔄 Hent samtaler';
+                    if (!res.success || !res.data.length) {
+                        document.getElementById('lpt-logs-container').innerHTML = '<p>Ingen samtaler logget endnu.</p>';
+                        return;
+                    }
+                    var html = '';
+                    res.data.forEach(function(row, i){
+                        var msgs = row.messages || [];
+                        var userMsgs = msgs.filter(m=>m.role==='user').length;
+                        var cart = row.cart_added == 1 ? '🛒 Lagt i kurv' : '';
+                        html += '<details style="border:1px solid #ddd;border-radius:4px;margin-bottom:8px;padding:0">';
+                        html += '<summary style="padding:10px;cursor:pointer;background:#f6f7f7;border-radius:4px">';
+                        html += '<strong>' + row.started_at + '</strong> — ' + userMsgs + ' kundebesked(er) ' + cart;
+                        html += '</summary><div style="padding:12px;font-size:0.9rem">';
+                        msgs.forEach(function(m){
+                            var bg = m.role==='user' ? '#e8f4fd' : '#f0fdf4';
+                            var label = m.role==='user' ? '👤 Kunde' : '🤖 Agent';
+                            // Fjern JSON-blokke fra visning
+                            var txt = m.content.replace(/\[TILBUD_START\][\s\S]*?\[TILBUD_SLUT\]/g,'[tilbud]')
+                                               .replace(/\[VALG_START\][\s\S]*?\[VALG_SLUT\]/g,'[valg]')
+                                               .replace(/\[BILLEDER_START\][\s\S]*?\[BILLEDER_SLUT\]/g,'[billeder]');
+                            html += '<div style="background:'+bg+';border-radius:4px;padding:8px;margin-bottom:6px">';
+                            html += '<strong>' + label + ':</strong> ' + txt.replace(/\n/g,'<br>');
+                            html += '</div>';
+                        });
+                        html += '</div></details>';
+                    });
+                    document.getElementById('lpt-logs-container').innerHTML = html;
+                }).catch(function(e){
+                    btn.disabled = false; btn.textContent = '🔄 Hent samtaler';
+                    document.getElementById('lpt-logs-container').innerHTML = '<p style="color:red">Fejl: ' + e.message + '</p>';
+                });
+            });
+            </script>
+
+            <?php elseif ( $tab === 'test' ) : ?>
+            <h2>Test agent</h2>
+            <p style="color:#666">Skriv som en kunde og se hvad agenten svarer. Samtalen logges ikke.</p>
+            <div id="lpt-test-chat" style="max-width:700px;border:1px solid #ddd;border-radius:6px;overflow:hidden">
+                <div id="lpt-test-messages" style="height:420px;overflow-y:auto;padding:14px;background:#fafafa;display:flex;flex-direction:column;gap:8px"></div>
+                <div style="display:flex;border-top:1px solid #ddd;padding:10px;gap:8px;background:#fff">
+                    <input type="text" id="lpt-test-input" placeholder="Skriv din besked..." style="flex:1;padding:8px;border:1px solid #ccc;border-radius:4px" />
+                    <button id="lpt-test-send" class="button button-primary">Send</button>
+                    <button id="lpt-test-reset" class="button">Nulstil</button>
+                </div>
+            </div>
+            <script>
+            (function(){
+                var history = [];
+                var $msgs = document.getElementById('lpt-test-messages');
+                var $input = document.getElementById('lpt-test-input');
+                var $send = document.getElementById('lpt-test-send');
+                var $reset = document.getElementById('lpt-test-reset');
+                var sending = false;
+
+                function addMsg(role, text) {
+                    var bg = role==='user' ? '#dbeafe' : '#dcfce7';
+                    var label = role==='user' ? '👤 Du' : '🤖 Agent';
+                    // Ryd JSON-blokke
+                    var clean = text.replace(/\[TILBUD_START\][\s\S]*?\[TILBUD_SLUT\]/g,'[tilbud genereret]')
+                                    .replace(/\[VALG_START\][\s\S]*?\[VALG_SLUT\]/g,'')
+                                    .replace(/\[BILLEDER_START\][\s\S]*?\[BILLEDER_SLUT\]/g,'');
+                    var div = document.createElement('div');
+                    div.style.cssText = 'background:'+bg+';border-radius:6px;padding:8px 12px;max-width:90%;white-space:pre-wrap';
+                    div.innerHTML = '<strong style="font-size:0.75rem;display:block;margin-bottom:2px">'+label+'</strong>'+clean.replace(/</g,'&lt;');
+                    $msgs.appendChild(div);
+                    $msgs.scrollTop = $msgs.scrollHeight;
+                }
+
+                function send() {
+                    if (sending) return;
+                    var msg = $input.value.trim();
+                    if (!msg) return;
+                    $input.value = '';
+                    addMsg('user', msg);
+                    sending = true;
+                    $send.disabled = true;
+                    $send.textContent = '...';
+
+                    fetch(ajaxurl, {
+                        method:'POST',
+                        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+                        body:'action=lpt_admin_chat&nonce=<?php echo $nonce; ?>&message='+encodeURIComponent(msg)+'&history='+encodeURIComponent(JSON.stringify(history))
+                    }).then(r=>r.json()).then(function(res){
+                        sending = false; $send.disabled = false; $send.textContent = 'Send';
+                        if (res.success) {
+                            history = res.data.history || [];
+                            addMsg('assistant', res.data.message);
+                        } else {
+                            addMsg('assistant', '❌ Fejl: ' + (res.data&&res.data.message||'ukendt'));
+                        }
+                    }).catch(function(e){
+                        sending = false; $send.disabled = false; $send.textContent = 'Send';
+                        addMsg('assistant', '❌ Netværksfejl: ' + e.message);
+                    });
+                }
+
+                $send.addEventListener('click', send);
+                $input.addEventListener('keydown', function(e){ if(e.key==='Enter') send(); });
+                $reset.addEventListener('click', function(){
+                    history = [];
+                    $msgs.innerHTML = '';
+                });
+            })();
+            </script>
+
+            <?php elseif ( $tab === 'vidensbase' ) : ?>
+            <h2>Vidensbase — produktviden fra WooCommerce</h2>
+            <p>Agenten bruger disse produktbeskrivelser til at besvare kundespørgsmål. Opdateres automatisk hvert 24. timer.</p>
+            <button id="lpt-refresh-kb" class="button button-primary">🔄 Genopfrisk nu</button>
+            <span id="lpt-kb-status" style="margin-left:12px;color:#666;font-style:italic"></span>
+            <pre id="lpt-kb-content" style="margin-top:14px;background:#1e1e1e;color:#d4d4d4;padding:14px;border-radius:6px;font-size:0.78rem;max-height:500px;overflow-y:auto;white-space:pre-wrap"><?php echo esc_html( $this->get_website_knowledge() ?: 'Ingen vidensbase cachet endnu — klik Genopfrisk.' ); ?></pre>
+            <script>
+            document.getElementById('lpt-refresh-kb').addEventListener('click', function(){
+                var btn = this;
+                var $status = document.getElementById('lpt-kb-status');
+                var $pre = document.getElementById('lpt-kb-content');
+                btn.disabled = true; $status.textContent = 'Henter produkter...';
+                fetch(ajaxurl, {
+                    method:'POST',
+                    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+                    body:'action=lpt_refresh_knowledge&nonce=<?php echo $nonce; ?>'
+                }).then(r=>r.json()).then(function(res){
+                    btn.disabled = false;
+                    if (res.success) {
+                        $status.textContent = '✅ ' + res.data.message;
+                        $pre.textContent = res.data.content;
+                    } else {
+                        $status.textContent = '❌ Fejl: ' + (res.data&&res.data.message||'ukendt');
+                    }
+                }).catch(function(e){
+                    btn.disabled = false;
+                    $status.textContent = '❌ ' + e.message;
+                });
+            });
+            </script>
+
+            <?php else : // TAB: INDSTILLINGER ?>
 
             <form method="post" action="options.php">
                 <?php settings_fields( 'lpt_prisberegner_group' ); ?>
@@ -1308,7 +1638,7 @@ class LPT_Prisberegner {
             <p style="color:#888;font-size:0.85rem;margin-top:12px">Plugin version <?php echo LPT_VERSION; ?></p>
 
             <?php if ( $this->get_rentman_token() ) : ?>
-            <hr>
+            <hr><!-- rentman start -->
             <h2>Rentman — Faktorgrupper (fra API)</h2>
             <p>
                 <button type="button" id="lpt-rentman-test" class="button button-secondary">🔍 Test Rentman API-forbindelse</button>
@@ -1364,10 +1694,10 @@ class LPT_Prisberegner {
                     </tbody>
                 </table>
             <?php endif; ?>
-            <?php endif; ?>
+            <?php endif; // rentman ?>
 
-            <?php
-            ?>
+            <?php endif; // tab: indstillinger ?>
+
         </div>
         <?php
     }
@@ -1473,6 +1803,10 @@ class LPT_Prisberegner {
             wp_send_json_error( [ 'message' => 'Tom besked.' ] );
         }
 
+        // Session-id til logning
+        $session_id  = sanitize_text_field( wp_unslash( $_POST['session_id'] ?? '' ) );
+        if ( ! $session_id ) $session_id = wp_generate_uuid4();
+
         $history_raw = wp_unslash( $_POST['history'] ?? '[]' );
         $history     = json_decode( $history_raw, true );
         if ( ! is_array( $history ) ) $history = [];
@@ -1516,9 +1850,13 @@ class LPT_Prisberegner {
         $assistant_reply = $body['content'][0]['text'] ?? '';
         $history[]       = [ 'role' => 'assistant', 'content' => $assistant_reply ];
 
+        // Log samtalen
+        $this->log_chat_session( $session_id, $history, false );
+
         wp_send_json_success( [
-            'message' => $assistant_reply,
-            'history' => $history,
+            'message'    => $assistant_reply,
+            'history'    => $history,
+            'session_id' => $session_id,
         ] );
     }
 
@@ -1527,7 +1865,8 @@ class LPT_Prisberegner {
         $delivery_cost   = (float) get_option( 'lpt_delivery_cost', 250 );
         $price_table     = $this->get_live_price_table();
         $factor_prompt   = $this->build_factor_groups_prompt();
-        $product_factors = $this->build_product_factor_group_map_prompt();
+        $product_factors    = $this->build_product_factor_group_map_prompt();
+        $website_knowledge  = $this->get_website_knowledge();
 
         return <<<PROMPT
 Du er Lejpartytelt's festrådgiver — en venlig og professionel rådgiver for Lejpartytelt.dk, en dansk udlejningsvirksomhed i Esbjerg-området, der udlejer telte, møbler, lyd, lys og festudstyr.
@@ -1576,6 +1915,8 @@ Henvis altid til ovenstående hvis kunden spørger om åbningstider, kontakt ell
 
 ## AKTUELLE PRISER FRA HJEMMESIDEN (pr. dag inkl. moms)
 {$price_table}
+
+{$website_knowledge}
 
 ## TELT-RÅDGIVNING — STIL ALTID DISSE SPØRGSMÅL FØR DU ANBEFALER STØRRELSE
 

@@ -21,6 +21,7 @@
 
     let history = [];
     let sending = false; // Guard mod dobbeltkald
+    let sessionId = ''; // Unikt session-id til logning
 
     /* ── INIT ── */
     // Brug et globalt flag så init kun køres én gang selv hvis jQuery fires to gange
@@ -70,15 +71,17 @@
         showTyping();
 
         $.post(lptChatConfig.ajaxUrl, {
-            action:  'lpt_chat_message',
-            nonce:   lptChatConfig.nonce,
-            message: text,
-            history: JSON.stringify(history),
+            action:     'lpt_chat_message',
+            nonce:      lptChatConfig.nonce,
+            message:    text,
+            history:    JSON.stringify(history),
+            session_id: sessionId,
         })
         .done(function (res) {
             removeTyping();
             if (res.success) {
-                history = res.data.history || [];
+                history   = res.data.history || [];
+                sessionId = res.data.session_id || sessionId;
                 renderAgentMessage(res.data.message);
             } else {
                 appendMessage('agent', 'Beklager, der opstod en fejl: ' + (res.data.message || 'Prøv igen.'));
@@ -185,14 +188,16 @@
     function sendAutoMessage(text) {
         showTyping();
         $.post(lptChatConfig.ajaxUrl, {
-            action:  'lpt_chat_message',
-            nonce:   lptChatConfig.nonce,
-            message: text,
-            history: JSON.stringify(history),
+            action:     'lpt_chat_message',
+            nonce:      lptChatConfig.nonce,
+            message:    text,
+            history:    JSON.stringify(history),
+            session_id: sessionId,
         }).done(function(res) {
             removeTyping();
             if (res.success) {
-                history = res.data.history || [];
+                history   = res.data.history || [];
+                sessionId = res.data.session_id || sessionId;
                 renderAgentMessage(res.data.message);
             }
         }).fail(function() {
