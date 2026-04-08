@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.13.0
+ * Version:     1.13.1
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -1188,6 +1188,7 @@ class LPT_Prisberegner {
         register_setting( 'lpt_prisberegner_group', 'lpt_color_primary_dark', [ 'sanitize_callback' => 'sanitize_hex_color' ] );
         register_setting( 'lpt_prisberegner_group', 'lpt_color_header_dark',  [ 'sanitize_callback' => 'sanitize_hex_color' ] );
         register_setting( 'lpt_prisberegner_group', 'lpt_color_header_vis',   [ 'sanitize_callback' => 'sanitize_hex_color' ] );
+        register_setting( 'lpt_prisberegner_group', 'lpt_custom_rules',       [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
 
         // Indlæs WP color picker på indstillingssiden
         add_action( 'admin_enqueue_scripts', function( $hook ) {
@@ -1495,6 +1496,21 @@ class LPT_Prisberegner {
             <script>
             jQuery(function($){ $('.lpt-color-picker').wpColorPicker(); });
             </script>
+
+            <hr>
+            <h2>🧠 Egne regler og tillæg til agenten</h2>
+            <p>Skriv dine egne regler, produktoplysninger eller rettelser her. De tilføjes automatisk til agentens instruktioner — du behøver ikke røre koden. Eksempler:</p>
+            <ul style="list-style:disc;margin-left:20px;color:#555">
+                <li><em>"Vores nye hoppeborg 'Slottet' kan rumme op til 8 børn og koster 1.200 kr/dag."</em></li>
+                <li><em>"Vi leverer IKKE til Fanø — henvis kunder derfra til kontakt."</em></li>
+                <li><em>"Ved spørgsmål om musikanlæg: vi anbefaler altid vores lydpakker frem for enkeltprodukter."</em></li>
+            </ul>
+            <form method="post" action="options.php" style="max-width:800px">
+                <?php settings_fields( 'lpt_prisberegner_group' ); ?>
+                <textarea name="lpt_custom_rules" rows="10" style="width:100%;font-family:monospace;font-size:13px;padding:10px;border:1px solid #ccd0d4;border-radius:4px"><?php echo esc_textarea( get_option( 'lpt_custom_rules', '' ) ); ?></textarea>
+                <p class="description" style="margin-top:6px">Skriv i almindeligt dansk — én regel pr. linje er nemmest at læse. Gemmes og aktiveres øjeblikkeligt.</p>
+                <?php submit_button( 'Gem regler' ); ?>
+            </form>
 
             <hr>
             <h2>Plugin-opdatering</h2>
@@ -2162,6 +2178,14 @@ Alle produkter er produktforsikrede og gennemgås jævnligt. Telte og hoppeborge
 - Forgæves kørsel og udvidet lejeperiode beregnes hvis udstyret ikke er tilgængeligt ved afhentning.
 - Forsikringen dækker ikke skader på brugerne — alle aktiviteter benyttes på eget ansvar.
 PROMPT;
+
+        // Tilføj egne regler fra admin hvis de er udfyldt
+        $custom_rules = trim( (string) get_option( 'lpt_custom_rules', '' ) );
+        if ( $custom_rules ) {
+            $prompt .= "\n\n## EGNE REGLER OG TILLÆG (højeste prioritet — følges altid)\n" . $custom_rules;
+        }
+
+        return $prompt;
     }
 
     /* ── CACHE RYDNING ── */
