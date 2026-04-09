@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.13.4
+ * Version:     1.13.5
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -1219,6 +1219,7 @@ class LPT_Prisberegner {
     }
 
     public function admin_init() {
+        // Gruppe 1: Hovedindstillinger
         register_setting( 'lpt_prisberegner_group', 'lpt_product_id',          [ 'sanitize_callback' => 'absint' ] );
         register_setting( 'lpt_prisberegner_group', 'lpt_delivery_cost',       [ 'sanitize_callback' => 'floatval' ] );
         register_setting( 'lpt_prisberegner_group', 'lpt_delivery_postcodes',  [ 'sanitize_callback' => 'sanitize_text_field' ] );
@@ -1226,12 +1227,14 @@ class LPT_Prisberegner {
         register_setting( 'lpt_prisberegner_group', 'lpt_delivery_product_id', [ 'sanitize_callback' => 'absint' ] );
         register_setting( 'lpt_prisberegner_group', 'lpt_rentman_token',       [ 'sanitize_callback' => 'sanitize_text_field' ] );
         register_setting( 'lpt_prisberegner_group', 'lpt_rentman_meta_key',    [ 'sanitize_callback' => 'sanitize_text_field' ] );
-        register_setting( 'lpt_prisberegner_group', 'lpt_update_url',          [ 'sanitize_callback' => 'esc_url_raw' ] );
-        register_setting( 'lpt_prisberegner_group', 'lpt_color_primary',      [ 'sanitize_callback' => 'sanitize_hex_color' ] );
-        register_setting( 'lpt_prisberegner_group', 'lpt_color_primary_dark', [ 'sanitize_callback' => 'sanitize_hex_color' ] );
-        register_setting( 'lpt_prisberegner_group', 'lpt_color_header_dark',  [ 'sanitize_callback' => 'sanitize_hex_color' ] );
-        register_setting( 'lpt_prisberegner_group', 'lpt_color_header_vis',   [ 'sanitize_callback' => 'sanitize_hex_color' ] );
-        register_setting( 'lpt_prisberegner_group', 'lpt_custom_rules',       [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
+        // Gruppe 2: Farver
+        register_setting( 'lpt_colors_group', 'lpt_update_url',          [ 'sanitize_callback' => 'esc_url_raw' ] );
+        register_setting( 'lpt_colors_group', 'lpt_color_primary',      [ 'sanitize_callback' => 'sanitize_hex_color' ] );
+        register_setting( 'lpt_colors_group', 'lpt_color_primary_dark', [ 'sanitize_callback' => 'sanitize_hex_color' ] );
+        register_setting( 'lpt_colors_group', 'lpt_color_header_dark',  [ 'sanitize_callback' => 'sanitize_hex_color' ] );
+        register_setting( 'lpt_colors_group', 'lpt_color_header_vis',   [ 'sanitize_callback' => 'sanitize_hex_color' ] );
+        // Gruppe 3: Egne regler
+        register_setting( 'lpt_rules_group', 'lpt_custom_rules', [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
 
         // Indlæs WP color picker på indstillingssiden
         add_action( 'admin_enqueue_scripts', function( $hook ) {
@@ -1511,7 +1514,7 @@ class LPT_Prisberegner {
             <h2>Farver</h2>
             <p>Tilpas farverne i chat, tilbud og produktpanelerne.</p>
             <form method="post" action="options.php">
-                <?php settings_fields( 'lpt_prisberegner_group' ); ?>
+                <?php settings_fields( 'lpt_colors_group' ); ?>
                 <table class="form-table" style="max-width:700px">
                     <?php
                     $colors = [
@@ -1549,7 +1552,7 @@ class LPT_Prisberegner {
                 <li><em>"Ved spørgsmål om musikanlæg: vi anbefaler altid vores lydpakker frem for enkeltprodukter."</em></li>
             </ul>
             <form method="post" action="options.php" style="max-width:800px">
-                <?php settings_fields( 'lpt_prisberegner_group' ); ?>
+                <?php settings_fields( 'lpt_rules_group' ); ?>
                 <textarea name="lpt_custom_rules" rows="10" style="width:100%;font-family:monospace;font-size:13px;padding:10px;border:1px solid #ccd0d4;border-radius:4px"><?php echo esc_textarea( get_option( 'lpt_custom_rules', '' ) ); ?></textarea>
                 <p class="description" style="margin-top:6px">Skriv i almindeligt dansk — én regel pr. linje er nemmest at læse. Gemmes og aktiveres øjeblikkeligt.</p>
                 <?php submit_button( 'Gem regler' ); ?>
@@ -1563,7 +1566,7 @@ class LPT_Prisberegner {
                     <th scope="row">Download URL (zip)</th>
                     <td>
                         <form method="post" action="options.php" style="display:inline">
-                            <?php settings_fields( 'lpt_prisberegner_group' ); ?>
+                            <?php settings_fields( 'lpt_colors_group' ); ?>
                             <input type="url" name="lpt_update_url" id="lpt-update-url"
                                    value="<?php echo esc_attr( ( get_option( 'lpt_update_url' ) ?: LPT_UPDATE_URL ) ); ?>"
                                    class="large-text" placeholder="https://github.com/Lodberg007/Agent_lejpartytelt/releases/latest/download/lpt-prisberegner.zip">
