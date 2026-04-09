@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.13.3
+ * Version:     1.13.4
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -994,25 +994,21 @@ class LPT_Prisberegner {
     private function build_factor_groups_prompt(): string {
         $groups = $this->get_rentman_factor_groups();
         if ( empty( $groups ) ) {
-            // Fallback: Standard-tabel hardcodet
-            return "### Standard (bruges af alle produkter)\n"
-                 . "| Fra | Til | Faktor |\n|-----|-----|--------|\n"
-                 . "| 1 | 3 | 1,0 |\n| 4 | 4 | 1,4 |\n| 5 | 5 | 1,7 |\n"
-                 . "| 6 | 6 | 2,0 |\n| 7 | 7 | 2,25 |\n| 8 | 8 | 2,5 |\n"
-                 . "| 9 | 9 | 2,75 |\n| 10 | 10 | 3,0 |\n| 11+ | ... | +0,25/dag |";
+            return "Standard: 1-3d×1.0, 4d×1.4, 5d×1.7, 6d×2.0, 7d×2.25, 8d×2.5, 9d×2.75, 10d×3.0\n";
         }
 
-        $text = '';
-        foreach ( $groups as $id => $group ) {
-            $text .= '### ' . $group['name'] . "\n";
-            $text .= "| Fra dage | Til dage | Faktor |\n|----------|----------|--------|\n";
+        $lines = [];
+        foreach ( $groups as $group ) {
+            $parts = [];
             foreach ( $group['factors'] as $row ) {
-                $text .= '| ' . $row['from'] . ' | ' . $row['to'] . ' | '
-                      . number_format( $row['factor'], 2, ',', '' ) . " |\n";
+                $f = $row['from'];
+                $t = $row['to'];
+                $v = number_format( $row['factor'], 2, '.', '' );
+                $parts[] = ( $f === $t ) ? "{$f}d×{$v}" : "{$f}-{$t}d×{$v}";
             }
-            $text .= "\n";
+            $lines[] = $group['name'] . ': ' . implode( ', ', $parts );
         }
-        return $text;
+        return implode( "\n", $lines ) . "\n";
     }
 
     // Bygger en tabel: produktnavn → faktorgruppe-navn (til system-prompten)
@@ -1929,8 +1925,6 @@ class LPT_Prisberegner {
         $price_table     = $this->get_live_price_table();
         $factor_prompt   = $this->build_factor_groups_prompt();
         $product_factors    = $this->build_product_factor_group_map_prompt();
-        $website_knowledge  = $this->get_website_knowledge();
-
         return <<<PROMPT
 Du er Lejpartytelt's festrådgiver — en venlig og professionel rådgiver for Lejpartytelt.dk, en dansk udlejningsvirksomhed i Esbjerg-området, der udlejer telte, møbler, lyd, lys og festudstyr.
 
@@ -1978,8 +1972,6 @@ Henvis altid til ovenstående hvis kunden spørger om åbningstider, kontakt ell
 
 ## AKTUELLE PRISER FRA HJEMMESIDEN (pr. dag inkl. moms)
 {$price_table}
-
-{$website_knowledge}
 
 ## TELT-RÅDGIVNING — STIL ALTID DISSE SPØRGSMÅL FØR DU ANBEFALER STØRRELSE
 
@@ -2487,14 +2479,12 @@ PROMPT;
                 : (float) $product->get_price();
 
             $name  = $product->get_name();
-            $desc  = wp_strip_all_tags( $product->get_short_description() );
-            $desc  = $desc ? ' — ' . mb_substr( $desc, 0, 120, 'UTF-8' ) : '';
 
             $price_str = $price > 0
-                ? number_format( $price, 2, ',', '.' ) . ' kr inkl. moms'
-                : 'kontakt for pris';
+                ? number_format( $price, 0, ',', '.' ) . ' kr'
+                : 'kontakt';
 
-            $line = $name . ' = ' . $price_str . $desc;
+            $line = $name . ' = ' . $price_str;
 
             if ( preg_match( '/^(telt|pavillon|scenetelt)\s/iu', $name ) ) {
                 $tents[] = $line;
