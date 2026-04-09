@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.13.2
+ * Version:     1.13.3
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -132,32 +132,38 @@ class LPT_Prisberegner {
     private function refresh_website_knowledge(): string {
         if ( ! function_exists( 'wc_get_products' ) ) return '';
 
-        $products = wc_get_products( [ 'limit' => -1, 'status' => 'publish' ] );
-        $by_cat   = [];
+        $skip_cats = [ 'ad hoc priser/projekter', 'skjulte ydelser', 'lovpligtig' ];
+        $products  = wc_get_products( [ 'limit' => -1, 'status' => 'publish' ] );
+        $by_cat    = [];
 
         foreach ( $products as $product ) {
             $cats = wp_get_post_terms( $product->get_id(), 'product_cat', [ 'fields' => 'names' ] );
-            // Spring over skjulte/interne kategorier
-            $cats = array_filter( (array) $cats, fn($c) => ! in_array( strtolower($c), [ 'ad hoc priser/projekter', 'skjulte ydelser', 'lovpligtig' ], true ) );
+            $cats = array_filter( (array) $cats, fn($c) => ! in_array( strtolower($c), $skip_cats, true ) );
             $cat  = ! empty( $cats ) ? reset( $cats ) : 'Øvrige';
 
             $name  = $product->get_name();
+            // Brug KUN short_description — max 150 tegn — for at holde prompten lille
             $short = wp_strip_all_tags( $product->get_short_description() );
-            $long  = wp_strip_all_tags( $product->get_description() );
-            // Fjern Divi/page-builder shortcodes
-            $long  = preg_replace( '/\[[^\]]+\]/', '', $long );
-            $long  = preg_replace( '/\s{2,}/', ' ', $long );
-            $text  = trim( $short . ' ' . $long );
+            $short = preg_replace( '/\[[^\]]+\]/', '', $short );
+            $short = trim( preg_replace( '/\s{2,}/', ' ', $short ) );
+            if ( mb_strlen( $short ) > 150 ) {
+                $short = mb_substr( $short, 0, 147 ) . '...';
+            }
 
-            $line = $text ? "- **$name**: $text" : "- **$name**";
+            $line = $short ? "- **$name**: $short" : "- **$name**";
             $by_cat[ $cat ][] = $line;
         }
 
         ksort( $by_cat );
         $output = "## PRODUKTVIDEN FRA HJEMMESIDEN\n";
-        $output .= "Brug disse beskrivelser til at svare på spørgsmål om produkterne.\n\n";
+        $output .= "Brug disse til at svare på spørgsmål om produkterne (priser er i prislisten ovenfor).\n\n";
         foreach ( $by_cat as $cat => $lines ) {
             $output .= "### $cat\n" . implode( "\n", $lines ) . "\n\n";
+        }
+
+        // Hård grænse: max 6000 tegn (~1500 tokens) så systemprompten ikke eksploderer
+        if ( mb_strlen( $output ) > 6000 ) {
+            $output = mb_substr( $output, 0, 5900 ) . "\n...(afkortet)";
         }
 
         set_transient( 'lpt_website_knowledge', $output, 24 * HOUR_IN_SECONDS );
