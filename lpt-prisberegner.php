@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.13.7
+ * Version:     1.13.8
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -1234,7 +1234,17 @@ class LPT_Prisberegner {
         register_setting( 'lpt_colors_group', 'lpt_color_header_dark',  [ 'sanitize_callback' => 'sanitize_hex_color' ] );
         register_setting( 'lpt_colors_group', 'lpt_color_header_vis',   [ 'sanitize_callback' => 'sanitize_hex_color' ] );
         // Gruppe 3: Egne regler
-        register_setting( 'lpt_rules_group', 'lpt_custom_rules', [ 'sanitize_callback' => 'sanitize_textarea_field' ] );
+        register_setting( 'lpt_rules_group', 'lpt_custom_rules', [
+            'sanitize_callback' => function( $value ) {
+                // Gem rå JSON-array uændret — valider kun at det er gyldig JSON
+                $decoded = json_decode( $value, true );
+                if ( is_array( $decoded ) ) {
+                    return wp_json_encode( array_values( array_filter( array_map( 'sanitize_text_field', $decoded ), fn( $r ) => $r !== '' ) ), JSON_UNESCAPED_UNICODE );
+                }
+                // Bagudkompatibelt fritekst-format
+                return sanitize_textarea_field( $value );
+            },
+        ] );
 
         // Indlæs WP color picker på indstillingssiden
         add_action( 'admin_enqueue_scripts', function( $hook ) {
@@ -1545,18 +1555,189 @@ class LPT_Prisberegner {
 
             <hr>
             <h2>🧠 Egne regler og tillæg til agenten</h2>
-            <p>Skriv dine egne regler, produktoplysninger eller rettelser her. De tilføjes automatisk til agentens instruktioner — du behøver ikke røre koden. Eksempler:</p>
-            <ul style="list-style:disc;margin-left:20px;color:#555">
-                <li><em>"Vores nye hoppeborg 'Slottet' kan rumme op til 8 børn og koster 1.200 kr/dag."</em></li>
-                <li><em>"Vi leverer IKKE til Fanø — henvis kunder derfra til kontakt."</em></li>
-                <li><em>"Ved spørgsmål om musikanlæg: vi anbefaler altid vores lydpakker frem for enkeltprodukter."</em></li>
-            </ul>
-            <form method="post" action="options.php" style="max-width:800px">
-                <?php settings_fields( 'lpt_rules_group' ); ?>
-                <textarea name="lpt_custom_rules" rows="10" style="width:100%;font-family:monospace;font-size:13px;padding:10px;border:1px solid #ccd0d4;border-radius:4px"><?php echo esc_textarea( get_option( 'lpt_custom_rules', '' ) ); ?></textarea>
-                <p class="description" style="margin-top:6px">Skriv i almindeligt dansk — én regel pr. linje er nemmest at læse. Gemmes og aktiveres øjeblikkeligt.</p>
-                <?php submit_button( 'Gem regler' ); ?>
-            </form>
+            <p>Tilføj, rediger og slet regler som agenten altid følger. Søg for at finde en bestemt regel hurtigt.</p>
+            <?php
+            // Hent regler — understøtter både gammelt (tekst) og nyt (JSON) format
+            $raw_rules = get_option( 'lpt_custom_rules', '' );
+            $rules = [];
+            $decoded = json_decode( $raw_rules, true );
+            if ( is_array( $decoded ) ) {
+                $rules = array_values( array_filter( $decoded, 'strlen' ) );
+            } elseif ( trim( $raw_rules ) ) {
+                // Migrer fra gammelt tekstformat — én linje = én regel
+                $rules = array_values( array_filter( array_map( 'trim', explode( "\n", $raw_rules ) ), 'strlen' ) );
+            }
+            ?>
+            <div style="max-width:860px">
+                <!-- Søgefelt -->
+                <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center">
+                    <input type="text" id="lpt-rule-search" placeholder="🔍 Søg i regler..." style="flex:1;padding:8px 12px;border:1px solid #ccd0d4;border-radius:4px;font-size:14px">
+                    <span id="lpt-rule-count" style="color:#666;font-size:13px;white-space:nowrap"><?php echo count($rules); ?> regel<?php echo count($rules) !== 1 ? 'r' : ''; ?></span>
+                </div>
+
+                <!-- Regelliste -->
+                <div id="lpt-rules-list" style="border:1px solid #ccd0d4;border-radius:4px;background:#fff;margin-bottom:14px">
+                    <?php if ( empty( $rules ) ) : ?>
+                        <p id="lpt-no-rules" style="padding:20px;text-align:center;color:#999;margin:0">Ingen regler endnu — tilføj din første regel nedenfor.</p>
+                    <?php else : ?>
+                        <?php foreach ( $rules as $i => $rule ) : ?>
+                        <div class="lpt-rule-row" data-index="<?php echo $i; ?>" style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid #f0f0f0">
+                            <span style="color:#999;font-size:12px;min-width:24px;padding-top:4px"><?php echo $i + 1; ?></span>
+                            <div class="lpt-rule-text" style="flex:1;font-size:13px;line-height:1.5;padding-top:2px;cursor:pointer;word-break:break-word" title="Klik for at redigere"><?php echo esc_html( $rule ); ?></div>
+                            <textarea class="lpt-rule-edit" style="display:none;flex:1;font-size:13px;padding:6px;border:1px solid #2271b1;border-radius:3px;resize:vertical;min-height:60px" rows="2"><?php echo esc_textarea( $rule ); ?></textarea>
+                            <div style="display:flex;gap:6px;flex-shrink:0">
+                                <button type="button" class="lpt-edit-btn button button-small" title="Rediger">✏️</button>
+                                <button type="button" class="lpt-save-btn button button-small button-primary" style="display:none" title="Gem ændring">💾</button>
+                                <button type="button" class="lpt-cancel-btn button button-small" style="display:none" title="Annuller">✖</button>
+                                <button type="button" class="lpt-delete-btn button button-small" style="color:#c00" title="Slet regel">🗑</button>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                        <p id="lpt-no-rules" style="display:none;padding:20px;text-align:center;color:#999;margin:0">Ingen regler matcher søgningen.</p>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Tilføj ny regel -->
+                <div style="background:#f6f7f7;border:1px solid #ccd0d4;border-radius:4px;padding:14px">
+                    <strong style="display:block;margin-bottom:8px;font-size:13px">➕ Tilføj ny regel</strong>
+                    <textarea id="lpt-new-rule" rows="3" placeholder="Skriv reglen her — fx: &quot;Vi leverer ikke til Fanø — henvis kunden til at kontakte os.&quot;" style="width:100%;padding:8px;border:1px solid #ccd0d4;border-radius:3px;font-size:13px;resize:vertical;box-sizing:border-box"></textarea>
+                    <button type="button" id="lpt-add-rule" class="button button-primary" style="margin-top:8px">Tilføj regel</button>
+                </div>
+
+                <!-- Skjult formular til at gemme JSON -->
+                <form method="post" action="options.php" id="lpt-rules-form" style="margin-top:14px">
+                    <?php settings_fields( 'lpt_rules_group' ); ?>
+                    <input type="hidden" name="lpt_custom_rules" id="lpt-rules-json" value="<?php echo esc_attr( json_encode( $rules, JSON_UNESCAPED_UNICODE ) ); ?>">
+                    <button type="submit" class="button button-primary">💾 Gem alle regler</button>
+                    <span style="color:#666;font-size:12px;margin-left:10px">Ændringer aktiveres øjeblikkeligt når du gemmer.</span>
+                </form>
+            </div>
+
+            <script>
+            (function(){
+                var rules = <?php echo json_encode( $rules, JSON_UNESCAPED_UNICODE ); ?>;
+
+                function saveRules() {
+                    document.getElementById('lpt-rules-json').value = JSON.stringify(rules);
+                }
+
+                function renderCount() {
+                    var visible = document.querySelectorAll('.lpt-rule-row:not([style*="display: none"]):not([style*="display:none"])').length;
+                    var total   = rules.length;
+                    var q       = document.getElementById('lpt-rule-search').value.trim();
+                    document.getElementById('lpt-rule-count').textContent = q
+                        ? visible + ' af ' + total + ' regler'
+                        : total + ' regel' + (total !== 1 ? 'r' : '');
+                }
+
+                // Søgefunktion
+                document.getElementById('lpt-rule-search').addEventListener('input', function(){
+                    var q = this.value.toLowerCase();
+                    var rows = document.querySelectorAll('.lpt-rule-row');
+                    var anyVisible = false;
+                    rows.forEach(function(row){
+                        var text = row.querySelector('.lpt-rule-text').textContent.toLowerCase();
+                        var match = !q || text.indexOf(q) !== -1;
+                        row.style.display = match ? '' : 'none';
+                        if (match) anyVisible = true;
+                    });
+                    document.getElementById('lpt-no-rules').style.display = anyVisible || !rows.length ? 'none' : 'block';
+                    renderCount();
+                });
+
+                // Rediger
+                document.getElementById('lpt-rules-list').addEventListener('click', function(e){
+                    var row = e.target.closest('.lpt-rule-row');
+                    if (!row) return;
+                    var idx    = parseInt(row.dataset.index);
+                    var txtDiv = row.querySelector('.lpt-rule-text');
+                    var txtArea= row.querySelector('.lpt-rule-edit');
+                    var editBtn= row.querySelector('.lpt-edit-btn');
+                    var saveBtn= row.querySelector('.lpt-save-btn');
+                    var cancelBtn= row.querySelector('.lpt-cancel-btn');
+                    var delBtn = row.querySelector('.lpt-delete-btn');
+
+                    if (e.target === delBtn || e.target.closest('.lpt-delete-btn') === delBtn) {
+                        if (!confirm('Slet denne regel?\n\n"' + rules[idx].substring(0,80) + (rules[idx].length > 80 ? '...' : '') + '"')) return;
+                        rules.splice(idx, 1);
+                        saveRules();
+                        row.remove();
+                        // Genummer
+                        document.querySelectorAll('.lpt-rule-row').forEach(function(r, i){
+                            r.dataset.index = i;
+                            r.querySelector('span').textContent = i + 1;
+                        });
+                        renderCount();
+                        return;
+                    }
+
+                    if (e.target === editBtn || e.target.closest('.lpt-edit-btn') === editBtn || e.target === txtDiv) {
+                        txtDiv.style.display  = 'none';
+                        txtArea.style.display = 'block';
+                        editBtn.style.display = 'none';
+                        saveBtn.style.display = '';
+                        cancelBtn.style.display = '';
+                        txtArea.focus();
+                        return;
+                    }
+
+                    if (e.target === saveBtn || e.target.closest('.lpt-save-btn') === saveBtn) {
+                        var val = txtArea.value.trim();
+                        if (!val) { alert('Reglen må ikke være tom.'); return; }
+                        rules[idx] = val;
+                        saveRules();
+                        txtDiv.textContent    = val;
+                        txtDiv.style.display  = '';
+                        txtArea.style.display = 'none';
+                        editBtn.style.display = '';
+                        saveBtn.style.display = 'none';
+                        cancelBtn.style.display = 'none';
+                        return;
+                    }
+
+                    if (e.target === cancelBtn || e.target.closest('.lpt-cancel-btn') === cancelBtn) {
+                        txtArea.value         = rules[idx];
+                        txtDiv.style.display  = '';
+                        txtArea.style.display = 'none';
+                        editBtn.style.display = '';
+                        saveBtn.style.display = 'none';
+                        cancelBtn.style.display = 'none';
+                        return;
+                    }
+                });
+
+                // Tilføj ny regel
+                document.getElementById('lpt-add-rule').addEventListener('click', function(){
+                    var val = document.getElementById('lpt-new-rule').value.trim();
+                    if (!val) { alert('Skriv en regel først.'); return; }
+                    rules.push(val);
+                    saveRules();
+
+                    var list = document.getElementById('lpt-rules-list');
+                    var noRules = document.getElementById('lpt-no-rules');
+                    if (noRules) noRules.style.display = 'none';
+
+                    var idx = rules.length - 1;
+                    var div = document.createElement('div');
+                    div.className = 'lpt-rule-row';
+                    div.dataset.index = idx;
+                    div.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid #f0f0f0;background:#f0fff4';
+                    div.innerHTML = '<span style="color:#999;font-size:12px;min-width:24px;padding-top:4px">' + (idx+1) + '</span>'
+                        + '<div class="lpt-rule-text" style="flex:1;font-size:13px;line-height:1.5;padding-top:2px;cursor:pointer;word-break:break-word" title="Klik for at redigere">' + val.replace(/</g,'&lt;') + '</div>'
+                        + '<textarea class="lpt-rule-edit" style="display:none;flex:1;font-size:13px;padding:6px;border:1px solid #2271b1;border-radius:3px;resize:vertical;min-height:60px" rows="2">' + val.replace(/</g,'&lt;') + '</textarea>'
+                        + '<div style="display:flex;gap:6px;flex-shrink:0">'
+                        + '<button type="button" class="lpt-edit-btn button button-small" title="Rediger">✏️</button>'
+                        + '<button type="button" class="lpt-save-btn button button-small button-primary" style="display:none" title="Gem ændring">💾</button>'
+                        + '<button type="button" class="lpt-cancel-btn button button-small" style="display:none" title="Annuller">✖</button>'
+                        + '<button type="button" class="lpt-delete-btn button button-small" style="color:#c00" title="Slet regel">🗑</button>'
+                        + '</div>';
+                    list.appendChild(div);
+                    document.getElementById('lpt-new-rule').value = '';
+                    setTimeout(function(){ div.style.background = ''; }, 1500);
+                    renderCount();
+                });
+            })();
+            </script>
 
             <hr>
             <h2>Plugin-opdatering</h2>
@@ -2210,9 +2391,16 @@ Alle produkter er produktforsikrede og gennemgås jævnligt. Telte og hoppeborge
 PROMPT;
 
         // Tilføj egne regler fra admin hvis de er udfyldt
-        $custom_rules = trim( (string) get_option( 'lpt_custom_rules', '' ) );
-        if ( $custom_rules ) {
-            $prompt .= "\n\n## EGNE REGLER OG TILLÆG (højeste prioritet — følges altid)\n" . $custom_rules;
+        $raw_rules = get_option( 'lpt_custom_rules', '' );
+        $decoded   = json_decode( $raw_rules, true );
+        if ( is_array( $decoded ) && count( $decoded ) > 0 ) {
+            $rule_lines = array_map( fn( $r ) => '- ' . trim( $r ), array_filter( $decoded, fn( $r ) => trim( $r ) !== '' ) );
+            if ( $rule_lines ) {
+                $prompt .= "\n\n## EGNE REGLER OG TILLÆG (højeste prioritet — følges altid)\n" . implode( "\n", $rule_lines );
+            }
+        } elseif ( trim( (string) $raw_rules ) !== '' ) {
+            // Bagudkompatibelt: gammelt fritekst-format
+            $prompt .= "\n\n## EGNE REGLER OG TILLÆG (højeste prioritet — følges altid)\n" . trim( $raw_rules );
         }
 
         return $prompt;
