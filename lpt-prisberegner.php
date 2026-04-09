@@ -3,7 +3,7 @@
  * Plugin Name: LPT Prisberegner
  * Plugin URI:  https://www.lejpartytelt.dk
  * Description: Interaktiv prisberegner med WooCommerce-integration til Lejpartytelt.dk. Brug shortcode [prisberegner] på en side.
- * Version:     1.13.5
+ * Version:     1.13.6
  * Author:      Lejpartytelt.dk
  * Text Domain: lpt-prisberegner
  */
@@ -2041,12 +2041,13 @@ Anbefal ALTID en størrelse der giver lidt ekstra plads — det er bedre at have
 - Gulv (grå klinke): anbefal hvis det er på græs/jord — koster 20-24 kr/m²
 - Anbefal opstilling/nedtagning medmindre kunden eksplicit fravælger det
 
-## DATO OG OPSÆTNING — VIGTIGT
-Du SKAL have disse oplysninger fra kunden inden du præsenterer et endeligt tilbud:
+## DATO OG OPSÆTNING — KUN VED TELTUDLEJNING
+Spørg KUN om dato når kunden bestiller et TELT. Ved alle andre produkter (maskiner, stole, borde, fadøl osv.) må du ALDRIG spørge om dato eller varighed — lav tilbuddet direkte.
+
+Ved teltbestilling skal du have:
 1. **Konkret dato** — hvilken dato/hvilke datoer skal teltet bruges? (fx "lørdag den 21. juni 2025")
    Beregn ud fra brugsdagene: start_date = første brugsdag, end_date = sidste brugsdag (ISO 8601: YYYY-MM-DD)
-2. **Opstilling/nedtagning** — ønsker kunden hjælp hertil? Hvornår? Særlig adresse/adgangsforhold?
-   (Opsætnings- og nedtagningsønsker skrives i ordrebemærkninger — spørg til det men lad kunden udfylde detaljer ved udtjekning)
+2. **Opstilling/nedtagning** — ønsker kunden hjælp hertil?
 
 **VEJLEDNING TIL KUNDEN VED TILBUD MED TELT ELLER LEVERING:**
 Når tilbuddet præsenteres, skal du altid oplyse kunden om følgende:
@@ -2054,12 +2055,11 @@ Når tilbuddet præsenteres, skal du altid oplyse kunden om følgende:
 - Ved weekendarrangement: teltet opsættes normalt **torsdag** og nedtages **mandag** — alt bestilt udstyr leveres og afhentes samtidig
 - Leveringsprisen fremgår i kurven når de indtaster deres postnummer (6700–6715 = 250 kr)
 
-Stil gerne dato-spørgsmålet tidligt i samtalen — fx: "Hvornår skal I bruge teltet? Angiv gerne den konkrete dato."
-
 **VIGTIGT om datoer — ABSOLUT REGEL:**
-- Når kunden opgiver én dato (fx "den 20. juni"), er start_date = end_date = den dato. Spørg ALDRIG om de skal bruge det dagen efter, flere dage, eller om de har brug for det længere. Én dato = 1 lejedag = multiplier 1.0.
-- Spørg ALDRIG opfølgende spørgsmål om antal dage. Lav tilbuddet direkte med de oplysninger kunden har givet.
-- Kunden tilføjer selv ekstra dage hvis de har brug for det.
+- Spørg ALDRIG om dato eller varighed ved maskiner, stole, borde, fadøl, funfood eller andre ikke-telt produkter.
+- Når kunden opgiver én dato, er start_date = end_date = den dato. Én dato = 1 lejedag = multiplier 1.0.
+- Spørg ALDRIG opfølgende om antal dage. Lav tilbuddet direkte.
+- Kunden angiver selv lejeperiode i kurven.
 
 **VIGTIGT om tilgængelighed — LÆS DETTE NØJE:**
 Når en kunde spørger om et produkt er ledigt en bestemt dato, skal du ALTID svare sådan:
